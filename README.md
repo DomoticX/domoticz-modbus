@@ -19,3 +19,6 @@ USB RS485-Serial Stick like **[This one](http://domoticx.nl/webwinkel/index.php?
 For this plugin to work you need to install: pymodbus3
 
 Install for python 3 with: ```sudo pip3 install -U pymodbus3```
+
+### HW Tested:
+* [Relay board](http://domoticx.com/modbus-relaisbord/)
