@@ -6,6 +6,8 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * ASCII
 * TCP
 
+Succesfully Tested on Domoticz version: 3.8153
+
 -----
 ### Using RTU / ASCII (SERIAL HW)
 
