@@ -1,13 +1,13 @@
 # ModbusRTU - SWITCH (USB RS485-Serial) Plugin for Domoticz
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
-# Serial HW: USB RS485-Serial Stick
+# Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
 # - PYMODBUS: Install for python 3 with: pip3 install -U pymodbus3
 #
 """
-<plugin key="ModbusRTU" name="Modbus - Universal WRITE" author="S. Ebeltjes / domoticx.nl" version="0.2.0" externallink="" wikilink="">
+<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.0" author="S. Ebeltjes / domoticx.nl" version="1.0.0" externallink="" wikilink="">
     <params>
         <param field="Mode1" label="Method" width="60px" required="true">
             <options>
@@ -46,7 +46,7 @@
                 <option label="StopBits 2 / ByteSize 8 / Parity: Odd" value="S2B8PO"/>
             </options>
         </param>
-        <param field="Mode4" label="Device address" width="75px" required="true"/>
+        <param field="Mode4" label="Device address" width="120px" required="true"/>
         <param field="Username" label="Functie" width="280px" required="true">
             <options>
                 <option label="Write Single Coil (Function 5)" value="5"/>
@@ -71,6 +71,8 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
 from pymodbus3.client.sync import ModbusSerialClient
 from pymodbus3.client.sync import ModbusTcpClient
+
+result=""
 
 class BasePlugin:
     enabled = False
@@ -152,26 +154,38 @@ class BasePlugin:
         if (str(Command) == "On"): payload = Parameters["Mode5"]
         if (str(Command) == "Off"): payload = Parameters["Mode6"]
 
-        Domoticz.Log("MODBUS DEBUG HW-USB SERIAL - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity) # DEBUG LINE
-        Domoticz.Log("MODBUS DEBUG CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Port"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+        if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
+          Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity) # DEBUG LINE
+          Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Port"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+          try:
+            client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
+          except:
+            Domoticz.Log("Error opening RS485-Serial interface on "+Parameters["SerialPort"])
+            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+
+        if (Parameters["Mode1"] == "tcp"):
+          Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+          try:
+            client = ModbusTcpClient(Parameters["Mode4"])
+          except:
+            Domoticz.Log("Error opening TCP interface on adress: "+Parameters["Mode4"])
+            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
         try:
-          client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
-
           # Which function to execute?
-          if (Parameters["Username"] == "5"): data = client.write_coil(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "6"): data = client.write_register(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "15"): data = client.write_coils(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "16"): data = client.write_registers(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
 
-	  # Domoticz.Log(data) #TODO DEBUG MODBUS OUTPUT
+          Domoticz.Log(str(result)) # TODO DEBUG MODBUS OUTPUT (not working generates nothing?)
           client.close()
-          if (str(Command) == "On"): Devices[1].Update(1, "1") #Update device to ON in Domoticz
-          if (str(Command) == "Off"): Devices[1].Update(0, "0") #Update device to OFF in Domoticz
 
+          if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
+          if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF in Domoticz
         except:
-          Domoticz.Log("Error communicating with RS485-Serial interface on "+Parameters["SerialPort"])
-          Devices[1].Update(0, "0") #Update device to OFF in Domoticz
+          Domoticz.Log("Modbus error communicating!, check your settings!")
+          Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
