@@ -2,10 +2,10 @@
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
 #
-# Install modbus library:
+# Install modbus library: 
 #
 """
-<plugin key="ModbusRTU" name="ModbusRTU - SWITCH (USB RS485-Serial)" author="S. Ebeltjes / domoticx.nl" version="0.0.1" externallink="" wikilink="">
+<plugin key="ModbusRTU" name="ModbusRTU - Universal WRITE (USB RS485-Serial)" author="S. Ebeltjes / domoticx.nl" version="1.0.0" externallink="" wikilink="">
     <params>
         <param field="SerialPort" label="Serial Port" width="150px" required="true"/>
         <param field="Mode1" label="BaudRate" width="60px" required="true">
@@ -43,10 +43,6 @@
         <param field="Address" label="Device adress" width="75px" required="true"/>
         <param field="Username" label="Functie" width="280px" required="true">
             <options>
-                <option label="Read Coil (Function 1)" value="1"/>
-                <option label="Read Discrete Input (Function 2)" value="2"/>
-                <option label="Read Holding Registers (Function 3)" value="3"/>
-                <option label="Read Input Registers (Function 4)" value="4"/>
                 <option label="Write Single Coil (Function 5)" value="5"/>
                 <option label="Write Single Holding Register (Function 6)" value="6" default="true"/>
                 <option label="Write Multiple Coils (Function 15)" value="15"/>
@@ -69,26 +65,17 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
 from pymodbus3.client.sync import ModbusSerialClient
 
-method = "rtu"
-port = "/dev/ttyUSB0"
-baudrate = 9600
-stopbits = 1
-bytesize = 8
-parity = "N"
-timeout = 1
-retries = 2
-
 class BasePlugin:
     enabled = False
+    global data
     def __init__(self):
         return
 
     def onStart(self):
-       Domoticz.Log("onStart called")
-       if (len(Devices) == 0):
-         Domoticz.Device(Name="ModbusCMD", Unit=1, TypeName="Switch", Image=5, Used=1).Create()
+       #Domoticz.Log("onStart called")
+       if (len(Devices) == 0): Domoticz.Device(Name="ModbusRTU", Unit=1, TypeName="Switch", Image=0, Used=1).Create() #Used=1 to add a switch immediatly!
        DumpConfigToLog()
-       Domoticz.Log("ModbusRTU - SWITCH (USB RS485-Serial) is loaded.")
+       Domoticz.Log("ModbusRTU - Universal WRITE (USB RS485-Serial) loaded.")
        return
 
     def onStop(self):
@@ -102,20 +89,29 @@ class BasePlugin:
         Domoticz.Log("onMessage called")
 
     def onCommand(self, Unit, Command, Level, Hue):
+        #Domoticz.Log("onCommand called")
         Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
         Domoticz.Log("MODBUS DEBUG HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode1"]+" StopBits="+Parameters["Mode2"]+" ByteSize="+Parameters["Mode3"]+" Parity="+Parameters["Mode4"]) # DEBUG LINE
         Domoticz.Log("MODBUS DEBUG CMD - Address="+Parameters["Address"]+" Register="+Parameters["Port"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+
+        #Which payload to execute?
+        if (str(Command) == "On"): payload = Parameters["Mode5"]
+        if (str(Command) == "Off"): payload = Parameters["Mode6"]
+
         try:
           client = ModbusSerialClient(method="rtu", port=Parameters["SerialPort"], stopbits=int(Parameters["Mode2"]), bytesize=int(Parameters["Mode3"]), parity=Parameters["Mode4"], baudrate=int(Parameters["Mode1"]), timeout=1, retries=2)
-          if (str(Command) == "On"):
-              data = client.write_register(int(Parameters["Port"]), int(Parameters["Mode5"], 16), unit=int(Parameters["Address"]))
-	      #Domoticz.Log(data)
-              Devices[1].Update(1, "1") #Update device to ON in Domoticz
-              client.close()
-          if (str(Command) == "Off"):
-              data = client.write_register(int(Parameters["Port"]), int(Parameters["Mode6"], 16), unit=int(Parameters["Address"]))
-              Devices[1].Update(0, "0") #Update device to OFF in Domoticz
-              client.close()
+
+          #Which function to execute?
+          if (Parameters["Username"] == "5"): data = client.write_coil(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "6"): data = client.write_register(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "15"): data = client.write_coils(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "16"): data = client.write_registers(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Address"]))
+
+	  #Domoticz.Log(data)
+          client.close()
+          if (str(Command) == "On"): Devices[1].Update(1, "1") #Update device to ON in Domoticz
+          if (str(Command) == "Off"): Devices[1].Update(0, "0") #Update device to OFF in Domoticz
+
         except:
           Domoticz.Log("Error communicating with RS485-Serial interface on "+Parameters["SerialPort"])
           Devices[1].Update(0, "0") #Update device to OFF in Domoticz
