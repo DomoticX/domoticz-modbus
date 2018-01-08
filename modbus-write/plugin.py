@@ -4,10 +4,10 @@
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
-# - PYMODBUS: Install for python 3 with: pip3 install -U pymodbus3
+# - PYMODBUS3: Install for python 3 with: sudo pip3 install -U pymodbus3
 #
 """
-<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.0" author="S. Ebeltjes / domoticx.nl" version="1.0.0" externallink="" wikilink="">
+<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.0" author="S. Ebeltjes / domoticx.nl" version="1.0.1" externallink="" wikilink="">
     <params>
         <param field="Mode1" label="Method" width="60px" required="true">
             <options>
@@ -16,8 +16,8 @@
                 <option label="TCP" value="tcp"/>
             </options>
         </param>
-        <param field="SerialPort" label="Serial Port" width="150px" required="true"/>
-        <param field="Mode2" label="BaudRate" width="60px" required="true">
+        <param field="SerialPort" label="Serial Port" width="120px" required="true"/>
+        <param field="Mode2" label="BaudRate" width="70px" required="true">
             <options>
                 <option label="1200" value="1200"/>
                 <option label="2400" value="2400"/>
@@ -30,7 +30,7 @@
                 <option label="115200" value="115200"/>
             </options>
         </param>
-        <param field="Mode3" label="PortSettings" width="260px" required="true">
+        <param field="Mode3" label="Port settings" width="260px" required="true">
             <options>
                 <option label="StopBits 1 / ByteSize 7 / Parity: None" value="S1B7PN"/>
                 <option label="StopBits 1 / ByteSize 7 / Parity: Even" value="S1B7PE"/>
@@ -56,8 +56,8 @@
             </options>
         </param>
         <param field="Port" label="Register" width="75px" required="true"/>
-        <param field="Mode5" label="PayLoad ON (HEX)" width="75px"/>
-        <param field="Mode6" label="PayLoad OFF (HEX)" width="75px"/>
+        <param field="Mode5" label="Payload ON (HEX)" width="75px"/>
+        <param field="Mode6" label="Payload OFF (HEX)" width="75px"/>
     </params>
 </plugin>
 """
@@ -80,11 +80,11 @@ class BasePlugin:
         return
 
     def onStart(self):
-       # Domoticz.Log("onStart called")
-       if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV", Unit=1, TypeName="Switch", Image=0, Used=1).Create() #Used=1 to add a switch immediatly!
-       DumpConfigToLog()
-       Domoticz.Log("Modbus - Universal WRITE loaded.")
-       return
+        # Domoticz.Log("onStart called")
+        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
+        DumpConfigToLog()
+        Domoticz.Log("Modbus - Universal WRITE loaded.")
+        return
 
     def onStop(self):
         Domoticz.Log("onStop called")
@@ -200,9 +200,9 @@ class BasePlugin:
     def UpdateDevice(Unit, nValue, sValue):
         # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
         if (Unit in Devices):
-            if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
-                Devices[Unit].Update(nValue, str(sValue))
-                Domoticz.Log("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
+          if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
+            Devices[Unit].Update(nValue, str(sValue))
+            Domoticz.Log("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
         return
 
 global _plugin
