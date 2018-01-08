@@ -1,4 +1,4 @@
-# ModbusRTU - SWITCH (USB RS485-Serial) Plugin for Domoticz
+# Modbus - Universal WRITE Plugin for Domoticz
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
