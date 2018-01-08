@@ -4,10 +4,10 @@
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
-# - PYMODBUS3: Install for python 3 with: sudo pip3 install -U pymodbus3
+# - PYMODBUS3: Install for python 3 with: [sudo pip3 install -U pymodbus3]
 #
 """
-<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.0" author="S. Ebeltjes / domoticx.nl" version="1.0.1" externallink="" wikilink="">
+<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.2" author="S. Ebeltjes / domoticx.nl" version="1.0.2" externallink="" wikilink="">
     <params>
         <param field="Mode1" label="Method" width="60px" required="true">
             <options>
@@ -47,6 +47,7 @@
             </options>
         </param>
         <param field="Mode4" label="Device address" width="120px" required="true"/>
+        <param field="Port" label="Port (TCP)" width="75px"/>
         <param field="Username" label="Functie" width="280px" required="true">
             <options>
                 <option label="Write Single Coil (Function 5)" value="5"/>
@@ -55,7 +56,7 @@
                 <option label="Write Registers (Function 16)" value="16"/>
             </options>
         </param>
-        <param field="Port" label="Register" width="75px" required="true"/>
+        <param field="Password" label="Register" width="75px" required="true"/>
         <param field="Mode5" label="Payload ON (HEX)" width="75px"/>
         <param field="Mode6" label="Payload OFF (HEX)" width="75px"/>
     </params>
@@ -156,7 +157,7 @@ class BasePlugin:
 
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
           Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity) # DEBUG LINE
-          Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Port"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+          Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
@@ -164,19 +165,19 @@ class BasePlugin:
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
         if (Parameters["Mode1"] == "tcp"):
-          Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+          Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
           try:
-            client = ModbusTcpClient(Parameters["Mode4"])
+            client = ModbusTcpClient(Parameters["Mode4"], port=int(Parameters["Port"]))
           except:
             Domoticz.Log("Error opening TCP interface on adress: "+Parameters["Mode4"])
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
         try:
           # Which function to execute?
-          if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Port"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
 
           Domoticz.Log(str(result)) # TODO DEBUG MODBUS OUTPUT (not working generates nothing?)
           client.close()
