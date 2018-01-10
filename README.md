@@ -11,9 +11,9 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 
 Place the folders inside the domoticz plugin folder, for example like this construction:
 
-/home/pi/domoticz/plugins/modbus-write/plugin.py
+**/home/pi/domoticz/plugins/modbus-write/plugin.py**
 
-/home/pi/domoticz/plugins/modbus-read/plugin.py
+**/home/pi/domoticz/plugins/modbus-read/plugin.py**
 
 Then restart domoticz with: ```sudo service domoticz.sh restart```
 
