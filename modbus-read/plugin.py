@@ -20,7 +20,7 @@
             </options>
         </param>
         <param field="SerialPort" label="Serial Port" width="120px" required="true"/>
-        <param field="Mode2" label="BaudRate" width="70px" required="true">
+        <param field="Mode2" label="Baudrate" width="70px" required="true">
             <options>
                 <option label="1200" value="1200"/>
                 <option label="2400" value="2400"/>
@@ -51,7 +51,7 @@
         </param>
         <param field="Mode4" label="Device address" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" width="75px"/>
-        <param field="Username" label="Functie" width="280px" required="true">
+        <param field="Username" label="Function" width="280px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
                 <option label="Read Discrete Input (Function 2)" value="2"/>
@@ -59,7 +59,7 @@
                 <option label="Read Input Registers (Function 4)" value="4" default="true"/>
             </options>
         </param>
-        <param field="Password" label="Register" width="75px" required="true"/>
+        <param field="Password" label="Register start" width="75px" required="true"/>
         <param field="Mode5" label="Registers to read" width="75px"/>
         <param field="Mode6" label="Data type" width="60px" required="true">
             <options>

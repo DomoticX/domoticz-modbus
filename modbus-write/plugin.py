@@ -20,7 +20,7 @@
             </options>
         </param>
         <param field="SerialPort" label="Serial Port" width="120px" required="true"/>
-        <param field="Mode2" label="BaudRate" width="70px" required="true">
+        <param field="Mode2" label="Baudrate" width="70px" required="true">
             <options>
                 <option label="1200" value="1200"/>
                 <option label="2400" value="2400"/>
@@ -51,7 +51,7 @@
         </param>
         <param field="Mode4" label="Device address" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" width="75px"/>
-        <param field="Username" label="Functie" width="280px" required="true">
+        <param field="Username" label="Function" width="280px" required="true">
             <options>
                 <option label="Write Single Coil (Function 5)" value="5"/>
                 <option label="Write Single Holding Register (Function 6)" value="6" default="true"/>
