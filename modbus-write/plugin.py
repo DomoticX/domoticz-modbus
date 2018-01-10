@@ -4,10 +4,13 @@
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
-# - PYMODBUS3: Install for python 3 with: [sudo pip3 install -U pymodbus3]
+# - PYMODBUS v1.3.2 or higher
+#   - Install for python 3.x with: sudo pip3 install -U pymodbus
+#
+# NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.2" author="S. Ebeltjes / domoticx.nl" version="1.0.2" externallink="" wikilink="">
+<plugin key="ModbusDEV" name="Modbus - Universal WRITE v1.0.3" author="S. Ebeltjes / domoticx.nl" version="1.0.3" externallink="" wikilink="">
     <params>
         <param field="Mode1" label="Method" width="60px" required="true">
             <options>
@@ -70,8 +73,8 @@ sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages/pyserial-3.3-py3.5.egg')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
-from pymodbus3.client.sync import ModbusSerialClient
-from pymodbus3.client.sync import ModbusTcpClient
+from pymodbus.client.sync import ModbusSerialClient
+from pymodbus.client.sync import ModbusTcpClient
 
 result=""
 
