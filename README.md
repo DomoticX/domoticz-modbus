@@ -6,6 +6,15 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * ASCII
 * TCP
 
+-----
+### Installation
+
+Place the folders inside the domoticz plugin folder, for example like this construction:
+
+/home/pi/domoticz/plugins/modbus-write/plugin.py
+
+/home/pi/domoticz/plugins/modbus-read/plugin.py
+
 Succesfully Tested on Domoticz version: 3.8153 (Stable)
 
 -----
@@ -33,6 +42,14 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 * Write Registers (Function 16)
 
 -----
+### Functions of the READ plugin
+
+* Read Coil (Function 1)
+* Read Discrete Input (Function 2)
+* Read Holding Registers (Function 3)
+* Read Input Registers (Function 4)
+
+-----
 ### Dependancies
 
 For this plugin to work you need to install: **pymodbus**
@@ -44,3 +61,4 @@ Preferred is v1.4.0 or higher!
 -----
 ### HW Tested:
 * [Relay board](http://domoticx.com/modbus-relaisbord/)
+* [KWh Meter - EASTRON SDM120](http://domoticx.com/modbus-kwh-meter-eastron-sdm120/)
