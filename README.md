@@ -15,6 +15,8 @@ Place the folders inside the domoticz plugin folder, for example like this const
 
 /home/pi/domoticz/plugins/modbus-read/plugin.py
 
+Then restart domoticz with: ```sudo service domoticz.sh restart```
+
 Succesfully Tested on Domoticz version: 3.8153 (Stable)
 
 -----
