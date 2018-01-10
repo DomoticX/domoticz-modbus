@@ -6,7 +6,7 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * ASCII
 * TCP
 
-Succesfully Tested on Domoticz version: 3.8153
+Succesfully Tested on Domoticz version: 3.8153 (Stable)
 
 -----
 ### Using RTU / ASCII (SERIAL HW)
@@ -35,9 +35,11 @@ Succesfully Tested on Domoticz version: 3.8153
 -----
 ### Dependancies
 
-For this plugin to work you need to install: **pymodbus3**
+For this plugin to work you need to install: **pymodbus**
 
-Install for python 3 with: ```sudo pip3 install -U pymodbus3```
+Install for python 3.x with: ```sudo pip3 install -U pymodbus```
+
+Preferred is v1.4.0 or higher!
 
 -----
 ### HW Tested:
