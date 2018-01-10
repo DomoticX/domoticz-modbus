@@ -1,16 +1,16 @@
-# Modbus - Universal WRITE Plugin for Domoticz
+# Modbus - Universal READ Plugin for Domoticz
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
-# - PYMODBUS v1.3.2 or higher
+# - PYMODBUS v1.4.0 or higher
 #   - Install for python 3.x with: sudo pip3 install -U pymodbus
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus - Universal WRITE v1.0.4" author="S. Ebeltjes / domoticx.nl" version="1.0.4" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-READ" name="Modbus - Universal READ v1.0.0" author="S. Ebeltjes / domoticx.nl" version="1.0.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="60px" required="true">
             <options>
@@ -53,15 +53,22 @@
         <param field="Port" label="Port (TCP)" width="75px"/>
         <param field="Username" label="Functie" width="280px" required="true">
             <options>
-                <option label="Write Single Coil (Function 5)" value="5"/>
-                <option label="Write Single Holding Register (Function 6)" value="6" default="true"/>
-                <option label="Write Multiple Coils (Function 15)" value="15"/>
-                <option label="Write Registers (Function 16)" value="16"/>
+                <option label="Read Coil (Function 1)" value="1"/>
+                <option label="Read Discrete Input (Function 2)" value="2"/>
+                <option label="Read Holding Registers (Function 3)" value="3"/>
+                <option label="Read Input Registers (Function 4)" value="4" default="true"/>
             </options>
         </param>
         <param field="Password" label="Register" width="75px" required="true"/>
-        <param field="Mode5" label="Payload ON (HEX)" width="75px"/>
-        <param field="Mode6" label="Payload OFF (HEX)" width="75px"/>
+        <param field="Mode5" label="Registers to read" width="75px"/>
+        <param field="Mode6" label="Data type" width="60px" required="true">
+            <options>
+                <option label="8int" value="8int" default="true"/>
+                <option label="16uint" value="16uint"/>
+                <option label="32uint" value="16uint"/>
+                <option label="float" value="float"/>
+            </options>
+        </param>
     </params>
 </plugin>
 """
@@ -76,6 +83,9 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 from pymodbus.client.sync import ModbusSerialClient
 from pymodbus.client.sync import ModbusTcpClient
 
+from pymodbus.constants import Endian
+from pymodbus.payload import BinaryPayloadDecoder
+
 result=""
 
 class BasePlugin:
@@ -85,9 +95,9 @@ class BasePlugin:
 
     def onStart(self):
         # Domoticz.Log("onStart called")
-        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-WRITE", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
+        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName="Custom", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
         DumpConfigToLog()
-        Domoticz.Log("Modbus - Universal WRITE loaded.")
+        Domoticz.Log("Modbus - Universal READ loaded.")
         return
 
     def onStop(self):
@@ -104,6 +114,14 @@ class BasePlugin:
         # Domoticz.Log("onCommand called")
         Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
 
+    def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
+        Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
+
+    def onDisconnect(self, Connection):
+        Domoticz.Log("onDisconnect called")
+
+    def onHeartbeat(self):
+        # Domoticz.Log("onHeartbeat called")
         # Wich port settings to use? (todo improvement: could be array table or something...)
         if (Parameters["Mode3"] == "S1B7PN"):
            StopBits=1
@@ -154,13 +172,9 @@ class BasePlugin:
            ByteSize=8
            Parity="O"
 
-        # Which payload to execute?
-        if (str(Command) == "On"): payload = Parameters["Mode5"]
-        if (str(Command) == "Off"): payload = Parameters["Mode6"]
-
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
-          Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity) # DEBUG LINE
-          Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+          #Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity) # DEBUG LINE
+          #Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"]) # DEBUG LINE
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
@@ -168,7 +182,7 @@ class BasePlugin:
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
         if (Parameters["Mode1"] == "tcp"):
-          Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"]) # DEBUG LINE
+          #Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Port="+Parameters["Port"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"]) # DEBUG LINE
           try:
             client = ModbusTcpClient(Parameters["Mode4"], port=int(Parameters["Port"]))
           except:
@@ -177,29 +191,26 @@ class BasePlugin:
 
         try:
           # Which function to execute?
-          if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Mode4"]))
-
-          Domoticz.Log(str(result)) # TODO DEBUG MODBUS OUTPUT (not working generates nothing?)
+          if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
           client.close()
 
-          if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
-          if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+          # How to decode the input?
+          decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+          if (Parameters["Mode6"] == "8int"): value = str(round(decoder.decode_8bit_int(), 2))
+          if (Parameters["Mode6"] == "16uint"): value = str(round(decoder.decode_16bit_uint(), 2))
+          if (Parameters["Mode6"] == "32uint"): value = str(round(decoder.decode_32bit_uint(), 2))
+          if (Parameters["Mode6"] == "float"): value = str(round(decoder.decode_32bit_float(), 2))
+
+          #Domoticz.Log("MODBUS DEBUG VALUE: "+value) # DEBUG LINE
+          Devices[1].Update(0, value) # Update value in Domoticz
+
         except:
           Domoticz.Log("Modbus error communicating!, check your settings!")
           Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
-    def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
-        Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
-
-    def onDisconnect(self, Connection):
-        Domoticz.Log("onDisconnect called")
-
-    def onHeartbeat(self):
-        # Domoticz.Log("onHeartbeat called")
-        return
 
     def UpdateDevice(Unit, nValue, sValue):
         # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
