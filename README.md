@@ -1,10 +1,24 @@
-## Modbus Plugins for Domoticz
+### Modbus RS485 Plugins for Domoticz
 Author: Sebastiaan Ebeltjes / domoticx.nl
 
-### Support for:
+**Support for:**
 * RTU
 * ASCII
 * TCP
+
+**Functions of the READ plugin**
+
+* Read Coil (Function 1)
+* Read Discrete Input (Function 2)
+* Read Holding Registers (Function 3)
+* Read Input Registers (Function 4)
+
+**Functions of the WRITE plugin**
+
+* Write Single Coil (Function 5)
+* Write Single Holding Register (Function 6)
+* Write Multiple Coils (Function 15)
+* Write Registers (Function 16)
 
 -----
 ### Installation
@@ -34,22 +48,6 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 * Setup: Select method "TCP"
 * Device adress is most likely an ip: xxx.xxx.xxx.xxx
 * Payload in HEX, like: 0x0100
-
------
-### Functions of the WRITE plugin
-
-* Write Single Coil (Function 5)
-* Write Single Holding Register (Function 6)
-* Write Multiple Coils (Function 15)
-* Write Registers (Function 16)
-
------
-### Functions of the READ plugin
-
-* Read Coil (Function 1)
-* Read Discrete Input (Function 2)
-* Read Holding Registers (Function 3)
-* Read Input Registers (Function 4)
 
 -----
 ### Dependancies
