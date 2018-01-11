@@ -9,7 +9,8 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * Read Discrete Input (Function 2)
 * Read Holding Registers (Function 3)
 * Read Input Registers (Function 4)
-* Supported data types: 8int, 16uint, 32uint, float
+
+Supported data types: 8int, 16uint, 32uint, float
 
 **Functions of the WRITE plugin**
 
@@ -17,7 +18,8 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * Write Single Holding Register (Function 6)
 * Write Multiple Coils (Function 15)
 * Write Registers (Function 16)
-* Write HEX Payloads, like: 0x0100
+
+Write HEX Payloads, like: 0x0100
 
 -----
 ### Installation
