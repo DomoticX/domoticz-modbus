@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.1" author="S. Ebeltjes / domoticx.nl" version="1.0.1" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.2" author="S. Ebeltjes / domoticx.nl" version="1.0.2" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -71,13 +71,15 @@
             <options>
                 <option label="8int" value="8int" default="true"/>
                 <option label="16uint" value="16uint"/>
-                <option label="32uint" value="32int"/>
+                <option label="32uint" value="32uint"/>
                 <option label="float" value="float"/>
             </options>
         </param>
     </params>
 </plugin>
 """
+import Domoticz
+
 import sys
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
@@ -148,7 +150,7 @@ class BasePlugin:
             Devices[1].Update(0, "0") # Update device in Domoticz
 
         if (Parameters["Mode1"] == "tcp"):
-          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"])
+          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" Register="+Parameters["Password"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"])
           try:
             client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]))
           except:
