@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.2" author="S. Ebeltjes / domoticx.nl" version="1.0.2" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.3" author="S. Ebeltjes / domoticx.nl" version="1.0.3" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -57,7 +57,7 @@
         </param>
         <param field="Address" label="Device address" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" width="75px"/>
-        <param field="Username" label="Function" width="280px" required="true">
+        <param field="Username" label="Function" width="220px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
                 <option label="Read Discrete Input (Function 2)" value="2"/>
@@ -67,12 +67,18 @@
         </param>
         <param field="Password" label="Register start" width="75px" required="true"/>
         <param field="Mode5" label="Registers to read" width="75px"/>
-        <param field="Mode6" label="Data type" width="60px" required="true">
+        <param field="Mode6" label="Data type" width="180px" required="true">
             <options>
-                <option label="8int" value="8int" default="true"/>
-                <option label="16uint" value="16uint"/>
-                <option label="32uint" value="32uint"/>
-                <option label="float" value="float"/>
+                <option label="8-Bit INT (1 register long)" value="8int"/>
+                <option label="16-Bit INT (1 register long)" value="16int"/>
+                <option label="32-Bit INT (2 registers long)" value="32int"/>
+                <option label="64-Bit INT (4 registers long)" value="64int"/>
+                <option label="8-Bit UINT (1 register long)" value="8uint"/>
+                <option label="16-Bit UINT (1 register long)" value="16uint" default="true"/>
+                <option label="32-Bit UINT (2 registers long)" value="32uint"/>
+                <option label="64-Bit UINT (4 registers long)" value="64uint"/>
+                <option label="32-Bit FLOAT (2 registers long)" value="float32"/>
+                <option label="64-Bit FLOAT (4 registers long)" value="float64"/>
             </options>
         </param>
     </params>
@@ -168,9 +174,15 @@ class BasePlugin:
           # How to decode the input?
           decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
           if (Parameters["Mode6"] == "8int"): value = str(round(decoder.decode_8bit_int(), 2))
+          if (Parameters["Mode6"] == "16int"): value = str(round(decoder.decode_16bit_int(), 2))
+          if (Parameters["Mode6"] == "32int"): value = str(round(decoder.decode_32bit_int(), 2))
+          if (Parameters["Mode6"] == "64int"): value = str(round(decoder.decode_64bit_int(), 2))
+          if (Parameters["Mode6"] == "8uint"): value = str(round(decoder.decode_8bit_uint(), 2))
           if (Parameters["Mode6"] == "16uint"): value = str(round(decoder.decode_16bit_uint(), 2))
           if (Parameters["Mode6"] == "32uint"): value = str(round(decoder.decode_32bit_uint(), 2))
-          if (Parameters["Mode6"] == "float"): value = str(round(decoder.decode_32bit_float(), 2))
+          if (Parameters["Mode6"] == "64uint"): value = str(round(decoder.decode_64bit_uint(), 2))
+          if (Parameters["Mode6"] == "float32"): value = str(round(decoder.decode_32bit_float(), 2))
+          if (Parameters["Mode6"] == "float64"): value = str(round(decoder.decode_64bit_float(), 2))
 
           if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG VALUE: "+value)
           Devices[1].Update(0, value) # Update value in Domoticz
