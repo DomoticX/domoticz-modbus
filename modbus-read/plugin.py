@@ -1,4 +1,4 @@
-# Modbus - Universal READ Plugin for Domoticz
+# Modbus RS485 RTU/ASCII/TCP - Universal READ Plugin for Domoticz
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
@@ -10,8 +10,14 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="ModbusDEV-READ" name="Modbus - Universal READ v1.0.0" author="S. Ebeltjes / domoticx.nl" version="1.0.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.1" author="S. Ebeltjes / domoticx.nl" version="1.0.1" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
+        <param field="Mode4" label="Debug" width="120px">
+            <options>
+                <option label="True" value="debug"/>
+                <option label="False" value="normal"  default="true" />
+            </options>
+        </param>
         <param field="Mode1" label="Method" width="60px" required="true">
             <options>
                 <option label="RTU" value="rtu" default="true"/>
@@ -49,7 +55,7 @@
                 <option label="StopBits 2 / ByteSize 8 / Parity: Odd" value="S2B8PO"/>
             </options>
         </param>
-        <param field="Mode4" label="Device address" width="120px" required="true"/>
+        <param field="Address" label="Device address" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" width="75px"/>
         <param field="Username" label="Function" width="280px" required="true">
             <options>
@@ -65,19 +71,15 @@
             <options>
                 <option label="8int" value="8int" default="true"/>
                 <option label="16uint" value="16uint"/>
-                <option label="32uint" value="16uint"/>
+                <option label="32uint" value="32int"/>
                 <option label="float" value="float"/>
             </options>
         </param>
     </params>
 </plugin>
 """
-import Domoticz
-
 import sys
-sys.path.append('/usr/local/lib/python3.4/dist-packages/pyserial-3.3-py3.5.egg')
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
-sys.path.append('/usr/local/lib/python3.5/dist-packages/pyserial-3.3-py3.5.egg')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
 from pymodbus.client.sync import ModbusSerialClient
@@ -94,10 +96,10 @@ class BasePlugin:
         return
 
     def onStart(self):
-        # Domoticz.Log("onStart called")
+        #Domoticz.Log("onStart called")
         if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName="Custom", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
         DumpConfigToLog()
-        Domoticz.Log("Modbus - Universal READ loaded.")
+        Domoticz.Log("Modbus RS485 RTU/ASCII/TCP - Universal READ loaded.")
         return
 
     def onStop(self):
@@ -111,7 +113,6 @@ class BasePlugin:
         Domoticz.Log("onMessage called")
 
     def onCommand(self, Unit, Command, Level, Hue):
-        # Domoticz.Log("onCommand called")
         Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
@@ -121,80 +122,45 @@ class BasePlugin:
         Domoticz.Log("onDisconnect called")
 
     def onHeartbeat(self):
-        # Domoticz.Log("onHeartbeat called")
-        # Wich port settings to use? (todo improvement: could be array table or something...)
-        if (Parameters["Mode3"] == "S1B7PN"):
-           StopBits=1
-           ByteSize=7
-           Parity="N"
-        if (Parameters["Mode3"] == "S1B7PE"):
-           StopBits=1
-           ByteSize=7
-           Parity="E"
-        if (Parameters["Mode3"] == "S1B7PO"):
-           StopBits=1
-           ByteSize=7
-           Parity="O"
-        if (Parameters["Mode3"] == "S1B8PN"):
-           StopBits=1
-           ByteSize=8
-           Parity="N"
-        if (Parameters["Mode3"] == "S1B8PE"):
-           StopBits=1
-           ByteSize=8
-           Parity="E"
-        if (Parameters["Mode3"] == "S1B8PO"):
-           StopBits=1
-           ByteSize=8
-           Parity="O"
-        if (Parameters["Mode3"] == "S2B7PN"):
-           StopBits=2
-           ByteSize=7
-           Parity="N"
-        if (Parameters["Mode3"] == "S2B7PE"):
-           StopBits=2
-           ByteSize=7
-           Parity="E"
-        if (Parameters["Mode3"] == "S2B7PO"):
-           StopBits=2
-           ByteSize=7
-           Parity="O"
-        if (Parameters["Mode3"] == "S2B8PN"):
-           StopBits=2
-           ByteSize=8
-           Parity="N"
-        if (Parameters["Mode3"] == "S2B8PE"):
-           StopBits=2
-           ByteSize=8
-           Parity="E"
-        if (Parameters["Mode3"] == "S2B8PO"):
-           StopBits=2
-           ByteSize=8
-           Parity="O"
+        Domoticz.Log("onHeartbeat called")
+
+        # Wich serial port settings to use?
+        if (Parameters["Mode3"] == "S1B7PN"): StopBits, ByteSize, Parity = 1, 7, "N"
+        if (Parameters["Mode3"] == "S1B7PE"): StopBits, ByteSize, Parity = 1, 7, "E"
+        if (Parameters["Mode3"] == "S1B7PO"): StopBits, ByteSize, Parity = 1, 7, "O"
+        if (Parameters["Mode3"] == "S1B8PN"): StopBits, ByteSize, Parity = 1, 8, "N"
+        if (Parameters["Mode3"] == "S1B8PE"): StopBits, ByteSize, Parity = 1, 8, "E"
+        if (Parameters["Mode3"] == "S1B8PO"): StopBits, ByteSize, Parity = 1, 8, "O"
+        if (Parameters["Mode3"] == "S2B7PN"): StopBits, ByteSize, Parity = 2, 7, "N"
+        if (Parameters["Mode3"] == "S2B7PE"): StopBits, ByteSize, Parity = 2, 7, "E"
+        if (Parameters["Mode3"] == "S2B7PO"): StopBits, ByteSize, Parity = 2, 7, "O"
+        if (Parameters["Mode3"] == "S2B8PN"): StopBits, ByteSize, Parity = 2, 8, "N"
+        if (Parameters["Mode3"] == "S2B8PE"): StopBits, ByteSize, Parity = 2, 8, "E"
+        if (Parameters["Mode3"] == "S2B8PO"): StopBits, ByteSize, Parity = 2, 8, "O"
 
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
-          #Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity) # DEBUG LINE
-          #Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"]) # DEBUG LINE
+          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity)
+          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"])
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
             Domoticz.Log("Error opening RS485-Serial interface on "+Parameters["SerialPort"])
-            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+            Devices[1].Update(0, "0") # Update device in Domoticz
 
         if (Parameters["Mode1"] == "tcp"):
-          #Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Mode4"]+" Port="+Parameters["Port"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"]) # DEBUG LINE
+          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"])
           try:
-            client = ModbusTcpClient(Parameters["Mode4"], port=int(Parameters["Port"]))
+            client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]))
           except:
-            Domoticz.Log("Error opening TCP interface on adress: "+Parameters["Mode4"])
-            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+            Domoticz.Log("Error opening TCP interface on adress: "+Parameters["Address"])
+            Devices[1].Update(0, "0") # Update device in Domoticz
 
         try:
           # Which function to execute?
-          if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
-          if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Mode4"]))
+          if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
           client.close()
 
           # How to decode the input?
@@ -204,7 +170,7 @@ class BasePlugin:
           if (Parameters["Mode6"] == "32uint"): value = str(round(decoder.decode_32bit_uint(), 2))
           if (Parameters["Mode6"] == "float"): value = str(round(decoder.decode_32bit_float(), 2))
 
-          #Domoticz.Log("MODBUS DEBUG VALUE: "+value) # DEBUG LINE
+          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG VALUE: "+value)
           Devices[1].Update(0, value) # Update value in Domoticz
 
         except:
