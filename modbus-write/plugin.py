@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RS485 RTU/ASCII/TCP - WRITE v1.0.5" author="S. Ebeltjes / domoticx.nl" version="1.0.5" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RS485 RTU/ASCII/TCP - WRITE v1.0.6" author="S. Ebeltjes / domoticx.nl" version="1.0.6" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -89,8 +89,8 @@ class BasePlugin:
 
     def onStart(self):
         # Domoticz.Log("onStart called")
-        if (len(Devices) == 0):
-          Domoticz.Device(Name="ModbusDEV-WRITE", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
+        if Parameters["Mode4"] == "debug": Domoticz.Debugging(1)
+        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-WRITE", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
         DumpConfigToLog()
         Domoticz.Log("Modbus RS485 RTU/ASCII/TCP - Universal WRITE loaded.")
 
@@ -126,8 +126,8 @@ class BasePlugin:
         if (str(Command) == "Off"): payload = Parameters["Mode6"]
 
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
-          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity)
-          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity)
+          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
@@ -135,7 +135,7 @@ class BasePlugin:
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
         if (Parameters["Mode1"] == "tcp"):
-          if (Parameters["Mode4"] == "debug"): Domoticz.Log("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
             client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]))
           except:
