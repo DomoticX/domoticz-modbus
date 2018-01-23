@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.4" author="S. Ebeltjes / domoticx.nl" version="1.0.4" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.5" author="S. Ebeltjes / domoticx.nl" version="1.0.5" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -67,8 +67,12 @@
         </param>
         <param field="Password" label="Register start" width="75px" required="true"/>
         <param field="Mode5" label="Registers to read" width="75px"/>
-        <param field="Mode6" label="Data type" width="180px" required="true">
+        <param field="Mode6" label="Data type" width="280px" required="true">
             <options>
+                <option label="Passtrough (1 register long)" value="pass1"/>
+                <option label="Passtrough (divide /10) (1 register long)" value="pass10"/>
+                <option label="Passtrough (divide /100) (1 register long)" value="pass100"/>
+                <option label="Passtrough (divide /1000) (1 register long)" value="pass1000"/>
                 <option label="8-Bit INT (1 register long)" value="8int"/>
                 <option label="16-Bit INT (1 register long)" value="16int"/>
                 <option label="32-Bit INT (2 registers long)" value="32int"/>
@@ -179,16 +183,20 @@ class BasePlugin:
         try:
           # How to decode the input?
           decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
-          if (Parameters["Mode6"] == "8int"): value = str(round(decoder.decode_8bit_int(), 2))
-          if (Parameters["Mode6"] == "16int"): value = str(round(decoder.decode_16bit_int(), 2))
-          if (Parameters["Mode6"] == "32int"): value = str(round(decoder.decode_32bit_int(), 2))
-          if (Parameters["Mode6"] == "64int"): value = str(round(decoder.decode_64bit_int(), 2))
-          if (Parameters["Mode6"] == "8uint"): value = str(round(decoder.decode_8bit_uint(), 2))
-          if (Parameters["Mode6"] == "16uint"): value = str(round(decoder.decode_16bit_uint(), 2))
-          if (Parameters["Mode6"] == "32uint"): value = str(round(decoder.decode_32bit_uint(), 2))
-          if (Parameters["Mode6"] == "64uint"): value = str(round(decoder.decode_64bit_uint(), 2))
-          if (Parameters["Mode6"] == "float32"): value = str(round(decoder.decode_32bit_float(), 2))
-          if (Parameters["Mode6"] == "float64"): value = str(round(decoder.decode_64bit_float(), 2))
+          if (Parameters["Mode6"] == "pass1"): value = str(data.registers[0])
+          if (Parameters["Mode6"] == "pass10"): value = str(round(data.registers[0]/10, 1))
+          if (Parameters["Mode6"] == "pass100"): value = str(round(data.registers[0]/100, 2))
+          if (Parameters["Mode6"] == "pass1000"): value = str(round(data.registers[0]/1000, 3))
+          if (Parameters["Mode6"] == "8int"): value = str(decoder.decode_8bit_int())
+          if (Parameters["Mode6"] == "16int"): value = str(decoder.decode_16bit_int())
+          if (Parameters["Mode6"] == "32int"): value = str(decoder.decode_32bit_int())
+          if (Parameters["Mode6"] == "64int"): value = str(decoder.decode_64bit_int())
+          if (Parameters["Mode6"] == "8uint"): value = str(decoder.decode_8bit_uint())
+          if (Parameters["Mode6"] == "16uint"): value = str(decoder.decode_16bit_uint())
+          if (Parameters["Mode6"] == "32uint"): value = str(decoder.decode_32bit_uint())
+          if (Parameters["Mode6"] == "64uint"): value = str(decoder.decode_64bit_uint())
+          if (Parameters["Mode6"] == "float32"): value = str(round(decoder.decode_32bit_float(), 3))
+          if (Parameters["Mode6"] == "float64"): value = str(round(decoder.decode_64bit_float(), 3))
           Domoticz.Debug("MODBUS DEBUG VALUE: "+value)
           Devices[1].Update(0, value) # Update value in Domoticz
         except:
