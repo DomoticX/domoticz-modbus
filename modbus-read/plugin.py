@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.5" author="S. Ebeltjes / domoticx.nl" version="1.0.5" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.6" author="S. Ebeltjes / domoticx.nl" version="1.0.6" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -57,7 +57,7 @@
         </param>
         <param field="Address" label="Device address" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" width="75px"/>
-        <param field="Username" label="Function" width="220px" required="true">
+        <param field="Username" label="ModBus Function" width="240px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
                 <option label="Read Discrete Input (Function 2)" value="2"/>
@@ -65,24 +65,28 @@
                 <option label="Read Input Registers (Function 4)" value="4" default="true"/>
             </options>
         </param>
-        <param field="Password" label="Register start" width="75px" required="true"/>
-        <param field="Mode5" label="Registers to read" width="75px"/>
-        <param field="Mode6" label="Data type" width="280px" required="true">
+        <param field="Password" label="Register number" width="75px" required="true"/>
+        <param field="Mode6" label="Data type" width="170px" required="true">
             <options>
-                <option label="Passtrough (1 register long)" value="pass1"/>
-                <option label="Passtrough (divide /10) (1 register long)" value="pass10"/>
-                <option label="Passtrough (divide /100) (1 register long)" value="pass100"/>
-                <option label="Passtrough (divide /1000) (1 register long)" value="pass1000"/>
-                <option label="8-Bit INT (1 register long)" value="8int"/>
-                <option label="16-Bit INT (1 register long)" value="16int"/>
-                <option label="32-Bit INT (2 registers long)" value="32int"/>
-                <option label="64-Bit INT (4 registers long)" value="64int"/>
-                <option label="8-Bit UINT (1 register long)" value="8uint"/>
-                <option label="16-Bit UINT (1 register long)" value="16uint" default="true"/>
-                <option label="32-Bit UINT (2 registers long)" value="32uint"/>
-                <option label="64-Bit UINT (4 registers long)" value="64uint"/>
-                <option label="32-Bit FLOAT (2 registers long)" value="float32"/>
-                <option label="64-Bit FLOAT (4 registers long)" value="float64"/>
+                <option label="Passtrough (1 register)" value="pass"/>
+                <option label="8-Bit INT" value="8int"/>
+                <option label="16-Bit INT" value="16int"/>
+                <option label="32-Bit INT" value="32int"/>
+                <option label="64-Bit INT" value="64int"/>
+                <option label="8-Bit UINT" value="8uint"/>
+                <option label="16-Bit UINT" value="16uint" default="true"/>
+                <option label="32-Bit UINT" value="32uint"/>
+                <option label="64-Bit UINT" value="64uint"/>
+                <option label="32-Bit FLOAT" value="float32"/>
+                <option label="64-Bit FLOAT" value="float64"/>
+            </options>
+        </param>
+        <param field="Mode5" label="Divide value" width="100px" required="true">
+            <options>
+                <option label="No" value="divnone" default="true"/>
+                <option label="Divide /10" value="div10"/>
+                <option label="Divide /100" value="div100"/>
+                <option label="Divide /1000" value="div1000"/>
             </options>
         </param>
     </params>
@@ -100,8 +104,15 @@ from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 
-result=""
-data=[]
+import logging
+logging.basicConfig()
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+
+# Declare internal variables
+result = ""
+value = 0
+data = []
 
 class BasePlugin:
     enabled = False
@@ -152,9 +163,23 @@ class BasePlugin:
         if (Parameters["Mode3"] == "S2B8PE"): StopBits, ByteSize, Parity = 2, 8, "E"
         if (Parameters["Mode3"] == "S2B8PO"): StopBits, ByteSize, Parity = 2, 8, "O"
 
+        # How many registers to read (depending on data type)?
+        registercount = 1 # Default
+        if (Parameters["Mode6"] == "pass"): registercount = 1
+        if (Parameters["Mode6"] == "8int"): registercount = 1
+        if (Parameters["Mode6"] == "16int"): registercount = 1
+        if (Parameters["Mode6"] == "32int"): registercount = 2
+        if (Parameters["Mode6"] == "64int"): registercount = 4
+        if (Parameters["Mode6"] == "8uint"): registercount = 1
+        if (Parameters["Mode6"] == "16uint"): registercount = 1
+        if (Parameters["Mode6"] == "32uint"): registercount = 2
+        if (Parameters["Mode6"] == "64uint"): registercount = 4
+        if (Parameters["Mode6"] == "float32"): registercount = 2
+        if (Parameters["Mode6"] == "float64"): registercount = 4
+
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
-          Domoticz.Debug("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity)
-          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+", BaudRate="+Parameters["Mode2"]+", StopBits="+str(StopBits)+", ByteSize="+str(ByteSize)+" Parity="+Parity)
+          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Register="+Parameters["Password"]+", Function="+Parameters["Username"]+", Data type="+Parameters["Mode6"])
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
@@ -162,7 +187,7 @@ class BasePlugin:
             Devices[1].Update(0, "0") # Update device in Domoticz
 
         if (Parameters["Mode1"] == "tcp"):
-          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" Register="+Parameters["Password"]+" Registers to read="+Parameters["Mode5"]+" Data type="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
           try:
             client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]))
           except:
@@ -171,11 +196,11 @@ class BasePlugin:
 
         try:
           # Which function to execute?
-          if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), int(Parameters["Mode5"]), unit=int(Parameters["Address"]))
-          client.close()
+          if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+          if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+          Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
         except:
           Domoticz.Log("Modbus error communicating!, check your settings!")
           Devices[1].Update(0, "0") # Update device to OFF in Domoticz
@@ -183,25 +208,29 @@ class BasePlugin:
         try:
           # How to decode the input?
           decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
-          if (Parameters["Mode6"] == "pass1"): value = str(data.registers[0])
-          if (Parameters["Mode6"] == "pass10"): value = str(round(data.registers[0]/10, 1))
-          if (Parameters["Mode6"] == "pass100"): value = str(round(data.registers[0]/100, 2))
-          if (Parameters["Mode6"] == "pass1000"): value = str(round(data.registers[0]/1000, 3))
-          if (Parameters["Mode6"] == "8int"): value = str(decoder.decode_8bit_int())
-          if (Parameters["Mode6"] == "16int"): value = str(decoder.decode_16bit_int())
-          if (Parameters["Mode6"] == "32int"): value = str(decoder.decode_32bit_int())
-          if (Parameters["Mode6"] == "64int"): value = str(decoder.decode_64bit_int())
-          if (Parameters["Mode6"] == "8uint"): value = str(decoder.decode_8bit_uint())
-          if (Parameters["Mode6"] == "16uint"): value = str(decoder.decode_16bit_uint())
-          if (Parameters["Mode6"] == "32uint"): value = str(decoder.decode_32bit_uint())
-          if (Parameters["Mode6"] == "64uint"): value = str(decoder.decode_64bit_uint())
-          if (Parameters["Mode6"] == "float32"): value = str(round(decoder.decode_32bit_float(), 3))
-          if (Parameters["Mode6"] == "float64"): value = str(round(decoder.decode_64bit_float(), 3))
-          Domoticz.Debug("MODBUS DEBUG VALUE: "+value)
-          Devices[1].Update(0, value) # Update value in Domoticz
+          if (Parameters["Mode6"] == "pass"): value = data.registers[0]
+          if (Parameters["Mode6"] == "8int"): value = decoder.decode_8bit_int()
+          if (Parameters["Mode6"] == "16int"): value = decoder.decode_16bit_int()
+          if (Parameters["Mode6"] == "32int"): value = decoder.decode_32bit_int()
+          if (Parameters["Mode6"] == "64int"): value = decoder.decode_64bit_int()
+          if (Parameters["Mode6"] == "8uint"): value = decoder.decode_8bit_uint()
+          if (Parameters["Mode6"] == "16uint"): value = decoder.decode_16bit_uint()
+          if (Parameters["Mode6"] == "32uint"): value = decoder.decode_32bit_uint()
+          if (Parameters["Mode6"] == "64uint"): value = decoder.decode_64bit_uint()
+          if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
+          if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
+          Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
         except:
           Domoticz.Log("Modbus error decoding (or recieved no data)!, check your settings!")
           Devices[1].Update(0, "0") # Update value in Domoticz
+
+        # Divide the value (decimal)?
+        if (Parameters["Mode5"] == "divnone"): value = str(value)
+        if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
+        if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
+        if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
+
+        Devices[1].Update(0, value) # Update value in Domoticz
 
     def UpdateDevice(Unit, nValue, sValue):
         # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
