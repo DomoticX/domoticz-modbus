@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.6" author="S. Ebeltjes / domoticx.nl" version="1.0.6" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.7" author="S. Ebeltjes / domoticx.nl" version="1.0.7" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -220,17 +220,18 @@ class BasePlugin:
           if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
           if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
           Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
+
+          # Divide the value (decimal)?
+          if (Parameters["Mode5"] == "divnone"): value = str(value)
+          if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
+          if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
+          if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
+
+          Devices[1].Update(0, value) # Update value in Domoticz
+
         except:
           Domoticz.Log("Modbus error decoding (or recieved no data)!, check your settings!")
           Devices[1].Update(0, "0") # Update value in Domoticz
-
-        # Divide the value (decimal)?
-        if (Parameters["Mode5"] == "divnone"): value = str(value)
-        if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
-        if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
-        if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
-
-        Devices[1].Update(0, value) # Update value in Domoticz
 
     def UpdateDevice(Unit, nValue, sValue):
         # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
