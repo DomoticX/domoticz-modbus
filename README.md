@@ -10,7 +10,7 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * Read Holding Registers (Function 3)
 * Read Input Registers (Function 4)
 
-Supported data types: 8int, 16uint, 32uint, float
+Supported data types: Passtrough (1 register), 8/16/32/64-Bit INT, 8/16/32/64-Bit UINT, 32/64-Bit FLOAT
 
 **Functions of the WRITE plugin**
 
