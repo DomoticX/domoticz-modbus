@@ -53,7 +53,25 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 -----
 ### Dependancies
 
-For this plugin to work you need to install: **pymodbus**
+For this plugin to work you need to install some dependancies
+
+**six**
+
+Six is a Python 2 and 3 compatibility library. It provides utility functions for smoothing over the differences between the Python versions with the goal of writing Python code that is compatible on both Python versions.
+
+1) Install for python 3.x with: ```sudo pip3 install -U six```
+
+(will install in /home/pi/.local/lib/python2.7/site-packages/)
+
+2) copy the py file to v3.x python
+
+```sudo cp six.py /usr/lib/python3.4```
+
+or
+
+```sudo cp six.py /usr/lib/python3.5```
+
+**pymodbus**
 
 Install for python 3.x with: ```sudo pip3 install -U pymodbus```
 
