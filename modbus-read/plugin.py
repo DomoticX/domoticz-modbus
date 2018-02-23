@@ -6,11 +6,13 @@
 # Dependancies:
 # - PYMODBUS v1.4.0 or higher
 #   - Install for python 3.x with: sudo pip3 install -U pymodbus
+# - PYMODBUSTCP v0.1.5 or higher
+#   - Install for python 3.x with: sudo pip3 install -U pymodbusTCP
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - READ v1.0.7" author="S. Ebeltjes / domoticx.nl" version="1.0.7" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RS485 RTU/ASCII/TCP - v1.1.0" author="S. Ebeltjes / domoticx.nl" version="1.1.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -18,11 +20,12 @@
                 <option label="False" value="normal"  default="true" />
             </options>
         </param>
-        <param field="Mode1" label="Method" width="60px" required="true">
+        <param field="Mode1" label="Method" width="100px" required="true">
             <options>
                 <option label="RTU" value="rtu" default="true"/>
                 <option label="ASCII" value="ascii"/>
-                <option label="TCP" value="tcp"/>
+                <option label="RTU over TCP" value="rtutcp"/>
+                <option label="TCP/IP" value="tcpip"/>
             </options>
         </param>
         <param field="SerialPort" label="Serial Port" width="120px" required="true"/>
@@ -56,7 +59,7 @@
             </options>
         </param>
         <param field="Address" label="Device address" width="120px" required="true"/>
-        <param field="Port" label="Port (TCP)" width="75px"/>
+        <param field="Port" label="Port (TCP)" value="502" width="75px"/>
         <param field="Username" label="ModBus Function" width="240px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
@@ -100,6 +103,7 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
 from pymodbus.client.sync import ModbusSerialClient
 from pymodbus.client.sync import ModbusTcpClient
+from pyModbusTCP.client import ModbusClient
 
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
@@ -186,7 +190,7 @@ class BasePlugin:
             Domoticz.Log("Error opening RS485-Serial interface on "+Parameters["SerialPort"])
             Devices[1].Update(0, "0") # Update device in Domoticz
 
-        if (Parameters["Mode1"] == "tcp"):
+        if (Parameters["Mode1"] == "rtutcp"):
           Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
           try:
             client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]))
@@ -194,44 +198,93 @@ class BasePlugin:
             Domoticz.Log("Error opening TCP interface on address: "+Parameters["Address"])
             Devices[1].Update(0, "0") # Update device in Domoticz
 
-        try:
-          # Which function to execute?
-          if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-          Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
-        except:
-          Domoticz.Log("Modbus error communicating!, check your settings!")
-          Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+        if (Parameters["Mode1"] == "tcpip"):
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
+          try:
+            client = ModbusClient(host=Parameters["Address"], port=int(Parameters["Port"]), auto_open=True, auto_close=True)
+          except:
+            Domoticz.Log("Error opening TCP/IP interface on address: "+Parameters["Address"])
+            Devices[1].Update(0, "0") # Update device in Domoticz
 
-        try:
-          # How to decode the input?
-          decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
-          if (Parameters["Mode6"] == "pass"): value = data.registers[0]
-          if (Parameters["Mode6"] == "8int"): value = decoder.decode_8bit_int()
-          if (Parameters["Mode6"] == "16int"): value = decoder.decode_16bit_int()
-          if (Parameters["Mode6"] == "32int"): value = decoder.decode_32bit_int()
-          if (Parameters["Mode6"] == "64int"): value = decoder.decode_64bit_int()
-          if (Parameters["Mode6"] == "8uint"): value = decoder.decode_8bit_uint()
-          if (Parameters["Mode6"] == "16uint"): value = decoder.decode_16bit_uint()
-          if (Parameters["Mode6"] == "32uint"): value = decoder.decode_32bit_uint()
-          if (Parameters["Mode6"] == "64uint"): value = decoder.decode_64bit_uint()
-          if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
-          if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
-          Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
+        if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii" or Parameters["Mode1"] == "rtutcp"):
+          try:
+            # Which function to execute? RTU/ASCII/RTU over TCP
+            if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+            Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
+          except:
+            Domoticz.Log("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
+            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
-          # Divide the value (decimal)?
-          if (Parameters["Mode5"] == "divnone"): value = str(value)
-          if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
-          if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
-          if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
+          try:
+            # How to decode the input?
+            decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+            if (Parameters["Mode6"] == "pass"): value = data.registers[0]
+            if (Parameters["Mode6"] == "8int"): value = decoder.decode_8bit_int()
+            if (Parameters["Mode6"] == "16int"): value = decoder.decode_16bit_int()
+            if (Parameters["Mode6"] == "32int"): value = decoder.decode_32bit_int()
+            if (Parameters["Mode6"] == "64int"): value = decoder.decode_64bit_int()
+            if (Parameters["Mode6"] == "8uint"): value = decoder.decode_8bit_uint()
+            if (Parameters["Mode6"] == "16uint"): value = decoder.decode_16bit_uint()
+            if (Parameters["Mode6"] == "32uint"): value = decoder.decode_32bit_uint()
+            if (Parameters["Mode6"] == "64uint"): value = decoder.decode_64bit_uint()
+            if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
+            if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
+            Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
 
-          Devices[1].Update(0, value) # Update value in Domoticz
+            # Divide the value (decimal)?
+            if (Parameters["Mode5"] == "divnone"): value = str(value)
+            if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
+            if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
+            if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
 
-        except:
-          Domoticz.Log("Modbus error decoding (or recieved no data)!, check your settings!")
-          Devices[1].Update(0, "0") # Update value in Domoticz
+            Devices[1].Update(0, value) # Update value in Domoticz
+
+          except:
+            Domoticz.Log("Modbus error decoding (RTU/ASCII/RTU over TCP) (or recieved no data)!, check your settings!")
+            Devices[1].Update(0, "0") # Update value in Domoticz
+
+        if (Parameters["Mode1"] == "tcpip"):
+          try:
+            # Which function to execute? TCP/IP
+            if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount)
+            if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount)
+            if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount)
+            if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount)
+            Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data[0]))
+          except:
+            Domoticz.Log("Modbus error communicating! (TCP/IP), check your settings!")
+            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+
+          try:
+            # How to decode the input?
+            decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+            if (Parameters["Mode6"] == "pass"): value = data[0]
+            if (Parameters["Mode6"] == "8int"): value = decoder.decode_8bit_int()
+            if (Parameters["Mode6"] == "16int"): value = decoder.decode_16bit_int()
+            if (Parameters["Mode6"] == "32int"): value = decoder.decode_32bit_int()
+            if (Parameters["Mode6"] == "64int"): value = decoder.decode_64bit_int()
+            if (Parameters["Mode6"] == "8uint"): value = decoder.decode_8bit_uint()
+            if (Parameters["Mode6"] == "16uint"): value = decoder.decode_16bit_uint()
+            if (Parameters["Mode6"] == "32uint"): value = decoder.decode_32bit_uint()
+            if (Parameters["Mode6"] == "64uint"): value = decoder.decode_64bit_uint()
+            if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
+            if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
+            Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
+
+            # Divide the value (decimal)?
+            if (Parameters["Mode5"] == "divnone"): value = str(value)
+            if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
+            if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
+            if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
+
+            Devices[1].Update(0, value) # Update value in Domoticz
+
+          except:
+            Domoticz.Log("Modbus error decoding (TCP/IP) (or recieved no data)!, check your settings!")
+            Devices[1].Update(0, "0") # Update value in Domoticz
 
     def UpdateDevice(Unit, nValue, sValue):
         # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
