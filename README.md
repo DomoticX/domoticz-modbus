@@ -1,7 +1,7 @@
 ### Modbus RS485 Plugins for Domoticz
 Author: Sebastiaan Ebeltjes / domoticx.nl
 
-**Support for: RTU / ASCII / TCP**
+**Support for: RTU / ASCII / RTU over TCP / TCP/IP (only read)**
 
 **Functions of the READ plugin**
 
@@ -43,9 +43,9 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 * Payload in HEX, like: 0x0100
 
 -----
-### Using TCP
+### Using RTU over TCP / TCP/IP
 
-* Hardware: Not required
+* Hardware: Ethernet connection
 * Setup: Select method "TCP"
 * Device adress is most likely an ip: xxx.xxx.xxx.xxx
 * Payload in HEX, like: 0x0100
@@ -53,7 +53,7 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 -----
 ### Dependancies
 
-For this plugin to work you need to install some dependancies
+For this plugin to work you need to install some dependancies:
 
 **six**
 
@@ -76,6 +76,12 @@ or
 Install for python 3.x with: ```sudo pip3 install -U pymodbus```
 
 Preferred is v1.4.0 or higher!
+
+**pymodbusTCP**
+
+Install for python 3.x with: ```sudo pip3 install -U pymodbusTCP```
+
+Preferred is v0.1.5 or higher!
 
 -----
 ### HW Tested:
