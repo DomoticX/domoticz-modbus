@@ -22,6 +22,7 @@ Supported data types:
 * INT 8/16/32/64-Bit
 * UINT 8/16/32/64-Bit
 * FLOAT 32/64-Bit
+* STRING 2/4/6/8 Bytes
 
 **Functions of the WRITE plugin**
 
@@ -58,9 +59,11 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 ### Using RTU over TCP / TCP/IP
 
 * Hardware: Not required
-* Setup: Select method "TCP"
+* Setup: Select method "RTU over TCP" or "TCP/IP"
 * Device adress is most likely an ip: xxx.xxx.xxx.xxx
-* Payload in HEX, like: 0x0100
+* Port is default 502
+* RTU over TCP: Write HEX Payloads, like: 0x0100
+* TCP/IP: Write INT Payloads, like: 53
 
 -----
 ### Dependancies
