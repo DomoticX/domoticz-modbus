@@ -1,16 +1,16 @@
-# Modbus RS485 RTU/ASCII/TCP - Universal WRITE Plugin for Domoticz
+# Modbus RTU/ASCII/TCP - Universal WRITE Plugin for Domoticz
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
-# - PYMODBUS v1.3.2 or higher
-#   - Install for python 3.x with: sudo pip3 install -U pymodbus
+# - pymodbus AND pymodbusTCP:
+#   - Install for python 3.x with: sudo pip3 install -U pymodbus pymodbusTCP
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RS485 RTU/ASCII/TCP - WRITE v1.0.6" author="S. Ebeltjes / domoticx.nl" version="1.0.6" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.0.7" author="S. Ebeltjes / domoticx.nl" version="1.0.7" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -18,11 +18,12 @@
                 <option label="False" value="normal"  default="true" />
             </options>
         </param>
-        <param field="Mode1" label="Method" width="60px" required="true">
+        <param field="Mode1" label="Method" width="120px" required="true">
             <options>
                 <option label="RTU" value="rtu" default="true"/>
                 <option label="ASCII" value="ascii"/>
-                <option label="TCP" value="tcp"/>
+                <option label="RTU over TCP" value="rtutcp"/>
+                <option label="TCP/IP" value="tcpip"/>
             </options>
         </param>
         <param field="SerialPort" label="Serial Port" width="120px" required="true"/>
@@ -56,8 +57,8 @@
             </options>
         </param>
         <param field="Address" label="Device address" width="120px" required="true"/>
-        <param field="Port" label="Port (TCP)" width="75px"/>
-        <param field="Username" label="Function" width="280px" required="true">
+        <param field="Port" label="Port (TCP)" value="502" width="75px"/>
+        <param field="Username" label="Modbus Function" width="280px" required="true">
             <options>
                 <option label="Write Single Coil (Function 5)" value="5"/>
                 <option label="Write Single Holding Register (Function 6)" value="6" default="true"/>
@@ -65,9 +66,9 @@
                 <option label="Write Registers (Function 16)" value="16"/>
             </options>
         </param>
-        <param field="Password" label="Register" width="75px" required="true"/>
-        <param field="Mode5" label="Payload ON (HEX)" width="75px"/>
-        <param field="Mode6" label="Payload OFF (HEX)" width="75px"/>
+        <param field="Password" label="Register number" width="75px" required="true"/>
+        <param field="Mode5" label="Payload ON" width="75px"/>
+        <param field="Mode6" label="Payload OFF" width="75px"/>
     </params>
 </plugin>
 """
@@ -79,6 +80,10 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
 from pymodbus.client.sync import ModbusSerialClient
 from pymodbus.client.sync import ModbusTcpClient
+from pyModbusTCP.client import ModbusClient
+
+from pymodbus.constants import Endian
+from pymodbus.payload import BinaryPayloadBuilder
 
 result=""
 
@@ -125,38 +130,75 @@ class BasePlugin:
         if (str(Command) == "On"): payload = Parameters["Mode5"]
         if (str(Command) == "Off"): payload = Parameters["Mode6"]
 
+        ###################################
+        # pymodbus: RTU / ASCII
+        ###################################
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
           Domoticz.Debug("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity)
           Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
-            Domoticz.Log("Error opening RS485-Serial interface on "+Parameters["SerialPort"])
+            Domoticz.Log("Error opening Serial interface on "+Parameters["SerialPort"])
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
-        if (Parameters["Mode1"] == "tcp"):
+        ###################################
+        # pymodbus: RTU over TCP
+        ###################################
+        if (Parameters["Mode1"] == "rtutcp"):
           Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
-            client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]))
+            client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]), timeout=5)
           except:
             Domoticz.Log("Error opening TCP interface on adress: "+Parameters["Address"])
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
-        try:
-          # Which function to execute?
-          if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
-          if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
+        ###################################
+        # pymodbusTCP: TCP/IP
+        ###################################
+        if (Parameters["Mode1"] == "tcpip"):
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
+          try:
+            client = ModbusClient(host=Parameters["Address"], port=int(Parameters["Port"]), auto_open=True, auto_close=True, timeout=5)
+          except:
+            Domoticz.Log("Error opening TCP/IP interface on address: "+Parameters["Address"])
+            Devices[1].Update(0, "0") # Update device in Domoticz
 
-          Domoticz.Log(str(result)) # TODO DEBUG MODBUS OUTPUT (not working generates nothing?)
-          client.close()
+        ###################################
+        # pymodbus section
+        ###################################
+        if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii" or Parameters["Mode1"] == "rtutcp"):
+          try:
+            # Which function to execute? RTU/ASCII/RTU over TCP
+            if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
+            client.close()
 
-          if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
-          if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF in Domoticz
-        except:
-          Domoticz.Log("Modbus error communicating!, check your settings!")
-          Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+            if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
+            if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+          except:
+            Domoticz.Log("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
+            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+
+        ###################################
+        # pymodbusTCP section
+        ###################################
+        if (Parameters["Mode1"] == "tcpip"):
+          try:
+            # Which function to execute? TCP/IP
+            if (Parameters["Username"] == "5"): data = client.write_single_coil(int(Parameters["Password"]), int(payload))
+            if (Parameters["Username"] == "6"): data = client.write_single_register(int(Parameters["Password"]), int(payload))
+            if (Parameters["Username"] == "15"): data = client.write_multiple_coils(int(Parameters["Password"]), [payload])  # TODO split up multiple bytes to proper array.
+            if (Parameters["Username"] == "16"): data = client.write_multiple_registers(int(Parameters["Password"]), [payload]) # TODO split up multiple bytes to proper array.
+            client.close()
+
+            if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
+            if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF in Domoticz
+          except:
+            Domoticz.Log("Modbus error communicating! (TCP/IP), check your settings!")
+            Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)

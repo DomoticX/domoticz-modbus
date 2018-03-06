@@ -1,7 +1,13 @@
-### Modbus RS485 Plugins for Domoticz
+### Modbus Read/Write Plugins for Domoticz
 Author: Sebastiaan Ebeltjes / domoticx.nl
 
-**Support for: RTU / ASCII / TCP**
+**Support for:
+
+* RS232/RS485
+* RTU
+* ASCII
+* RTU over TCP
+* TCP/IP
 
 **Functions of the READ plugin**
 
@@ -10,7 +16,12 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 * Read Holding Registers (Function 3)
 * Read Input Registers (Function 4)
 
-Supported data types: Passtrough (1 register), 8/16/32/64-Bit INT, 8/16/32/64-Bit UINT, 32/64-Bit FLOAT
+Supported data types:
+
+* No conversion (passtrough)
+* INT 8/16/32/64-Bit
+* UINT 8/16/32/64-Bit
+* FLOAT 32/64-Bit
 
 **Functions of the WRITE plugin**
 
@@ -19,7 +30,8 @@ Supported data types: Passtrough (1 register), 8/16/32/64-Bit INT, 8/16/32/64-Bi
 * Write Multiple Coils (Function 15)
 * Write Registers (Function 16)
 
-Write HEX Payloads, like: 0x0100
+RTU/ASCII/RTU over TCP: Write HEX Payloads, like: 0x0100
+TCP/IP: Write INT Payloads, like: 53
 
 -----
 ### Installation
@@ -43,7 +55,7 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 * Payload in HEX, like: 0x0100
 
 -----
-### Using TCP
+### Using RTU over TCP / TCP/IP
 
 * Hardware: Not required
 * Setup: Select method "TCP"
@@ -54,6 +66,10 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 ### Dependancies
 
 For this plugin to work you need to install some dependancies
+
+**pymodbus AND pymodbusTCP**
+
+Install for python 3.x with: ```sudo pip3 install -U pymodbus pymodbusTCP```
 
 **six**
 
@@ -70,12 +86,6 @@ Six is a Python 2 and 3 compatibility library. It provides utility functions for
 or
 
 ```sudo cp six.py /usr/lib/python3.5```
-
-**pymodbus**
-
-Install for python 3.x with: ```sudo pip3 install -U pymodbus```
-
-Preferred is v1.4.0 or higher!
 
 -----
 ### HW Tested:
