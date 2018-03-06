@@ -1,7 +1,7 @@
 ### Modbus Read/Write Plugins for Domoticz
 Author: Sebastiaan Ebeltjes / domoticx.nl
 
-**Support for:
+**Support for:**
 
 * RS232/RS485
 * RTU
