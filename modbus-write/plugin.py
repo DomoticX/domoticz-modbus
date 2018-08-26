@@ -10,7 +10,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.0.7" author="S. Ebeltjes / domoticx.nl" version="1.0.7" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.0.8" author="S. Ebeltjes / domoticx.nl" version="1.0.8" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -127,6 +127,8 @@ class BasePlugin:
         if (Parameters["Mode3"] == "S2B8PO"): StopBits, ByteSize, Parity = 2, 8, "O"
 
         # Which payload to execute?
+        payload = Level # Set payload from slider/scroll
+        # Set payload if a button has been pressed
         if (str(Command) == "On"): payload = Parameters["Mode5"]
         if (str(Command) == "Off"): payload = Parameters["Mode6"]
 
