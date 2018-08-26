@@ -123,7 +123,7 @@ class BasePlugin:
     def onStart(self):
         #Domoticz.Log("onStart called")
         if Parameters["Mode4"] == "debug": Domoticz.Debugging(1)
-        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName="Custom", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
+        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
         DumpConfigToLog()
         Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded.")
         return
@@ -306,6 +306,12 @@ class BasePlugin:
 
             Devices[1].Update(0, value) # Update value in Domoticz
 
+            # Section to make icons work with coils (#user bictest)
+            if (Parameters["Username"] == "1") and (value == "1"): Devices[1].Update(1, "1") # Update value in Domoticz
+            if (Parameters["Username"] == "1") and (value == "0"): Devices[1].Update(0, "0") # Update value in Domoticz
+            if (Parameters["Username"] != "1") and (value == "0"): Devices[1].Update(0, "0") # Update value in Domoticz
+            if (Parameters["Username"] == "1") and (value != "0"): Devices[1].Update(1, value) # Update value in Domoticz
+            
           except:
             Domoticz.Log("Modbus error decoding or recieved no data (TCP/IP)!, check your settings!")
             Devices[1].Update(0, "0") # Update value in Domoticz
