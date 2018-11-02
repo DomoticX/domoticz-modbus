@@ -9,15 +9,10 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
+# Removed debug option
 """
 <plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.2" author="S. Ebeltjes / domoticx.nl" version="1.1.2" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
-        <param field="Mode4" label="Debug" width="120px">
-            <options>
-                <option label="True" value="debug"/>
-                <option label="False" value="normal"  default="true" />
-            </options>
-        </param>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
                 <option label="RTU" value="rtu" default="true"/>
@@ -94,6 +89,42 @@
                 <option label="Divide /1000" value="div1000"/>
             </options>
         </param>
+	<param field="Mode4" label="Sensor type" width="180px" required="true" value="Custom">
+            <options>
+                <option label="Air Quality" value="Air Quality"/>
+		<option label="Alert" value="Alert"/>
+		<option label="Barometer" value="Barometer"/>
+		<option label="Counter Incremental" value="Counter Incremental"/>
+		<option label="Current/Ampere" value="Current/Ampere"/>
+		<option label="Current (Single)" value="Current (Single)"/>
+		<option label="Custom" value="Custom" default="true"/>
+		<option label="Distance" value="Distance"/>
+		<option label="Gas" value="Gas"/>
+		<option label="Humidity" value="Humidity"/>
+		<option label="Illumination" value="Illumination"/>
+		<option label="kWh" value="kWh"/>
+		<option label="Leaf Wetness" value="Leaf Wetness"/>
+		<option label="Percentage" value="Percentage"/>
+		<option label="Pressure" value="Pressure"/>
+		<option label="Rain" value="Rain"/>
+		<option label="Selector Switch" value="Selector Switch"/>
+		<option label="Soil Moisture" value="Soil Moisture"/>
+		<option label="Solar Radiation" value="Solar Radiation"/>
+		<option label="Sound Level" value="Sound Level"/>
+		<option label="Switch" value="Switch"/>
+		<option label="Temperature" value="Temperature"/>
+		<option label="Temp+Hum" value="Temp+Hum"/>
+		<option label="Temp+Hum+Baro" value="Temp+Hum+Baro"/>
+		<option label="Text" value="Text"/>
+		<option label="Usage" value="Usage"/>
+		<option label="UV" value="UV"/>
+		<option label="Visibility" value="Visibility"/>
+		<option label="Voltage" value="Voltage"/>
+		<option label="Waterflow" value="Waterflow"/>
+		<option label="Wind" value="Wind"/>
+		<option label="Wind+Temp+Chill" value="Wind+Temp+Chill"/>
+            </options>
+        </param>
     </params>
 </plugin>
 """
@@ -121,9 +152,11 @@ class BasePlugin:
         return
 
     def onStart(self):
-        #Domoticz.Log("onStart called")
-        if Parameters["Mode4"] == "debug": Domoticz.Debugging(1)
-        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
+        Domoticz.Log("onStart called")
+        #if Parameters["Mode4"] == "debug": Domoticz.Debugging(1)
+        Domoticz.Debugging(1)	#Enable debugging by default, mode 4 is used for something else
+        Domoticz.Log("Sensor Type: "+Parameters["Mode4"])
+        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName=Parameters["Mode4"], Image=0, Used=1).Create() #Added sensor type
         DumpConfigToLog()
         Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded.")
         return
