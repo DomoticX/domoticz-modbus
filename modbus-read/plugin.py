@@ -9,7 +9,9 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
-# Removed debug option
+# Sandolution: Removed debug option due to implementation of sensor type.
+# Added more options for data type (swapping of low/high byte/word).
+# Adjusted dividing settings to include 10000.
 """
 <plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.2" author="S. Ebeltjes / domoticx.nl" version="1.1.2" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
@@ -67,18 +69,26 @@
                 <option label="No conversion (1 register)" value="noco"/>
                 <option label="INT 8-Bit" value="int8"/>
                 <option label="INT 16-Bit" value="int16"/>
+                <option label="INT 16-Bit Swapped" value="int16s"/>
                 <option label="INT 32-Bit" value="int32"/>
+                <option label="INT 32-Bit Swapped" value="int32s"/>
                 <option label="INT 64-Bit" value="int64"/>
+                <option label="INT 64-Bit Swapped" value="int64s"/>
                 <option label="UINT 8-Bit" value="uint8"/>
                 <option label="UINT 16-Bit" value="uint16" default="true"/>
+                <option label="UINT 16-Bit Swapped" value="uint16s"/>
                 <option label="UINT 32-Bit" value="uint32"/>
+                <option label="UINT 32-Bit Swapped" value="uint32s"/>
                 <option label="UINT 64-Bit" value="uint64"/>
+                <option label="UINT 64-Bit Swapped" value="uint64s"/>
                 <option label="FLOAT 32-Bit" value="float32"/>
+                <option label="FLOAT 32-Bit Swapped" value="float32"/>
                 <option label="FLOAT 64-Bit" value="float64"/>
+                <option label="FLOAT 64-Bit Swapped" value="float64s"/>
                 <option label="STRING 2-byte" value="string2"/>
-                <option label="STRING (4-byte" value="string4"/>
-                <option label="STRING (6-byte" value="string6"/>
-                <option label="STRING (8-byte" value="string8"/>
+                <option label="STRING 4-byte" value="string4"/>
+                <option label="STRING 6-byte" value="string6"/>
+                <option label="STRING 8-byte" value="string8"/>
             </options>
         </param>
         <param field="Mode5" label="Divide value" width="100px" required="true">
@@ -87,6 +97,7 @@
                 <option label="Divide /10" value="div10"/>
                 <option label="Divide /100" value="div100"/>
                 <option label="Divide /1000" value="div1000"/>
+                <option label="Divide /10000" value="div10000"/>
             </options>
         </param>
 	<param field="Mode4" label="Sensor type" width="180px" required="true" value="Custom">
@@ -154,9 +165,11 @@ class BasePlugin:
     def onStart(self):
         Domoticz.Log("onStart called")
         #if Parameters["Mode4"] == "debug": Domoticz.Debugging(1)
-        Domoticz.Debugging(1)	#Enable debugging by default, mode 4 is used for something else
+        Domoticz.Debugging(0)	#Enable debugging by default, mode 4 is used for sensor mode
         Domoticz.Log("Sensor Type: "+Parameters["Mode4"])
-        if (len(Devices) == 0): Domoticz.Device(Name="ModbusDEV-READ", Unit=1, TypeName=Parameters["Mode4"], Image=0, Used=1).Create() #Added sensor type
+        #Removed the full name parameter
+        #Due to the lack of more parameter posibility, the name will be the hardware name
+        if (len(Devices) == 0): Domoticz.Device(Name=" ",  Unit=1, TypeName=Parameters["Mode4"], Image=0, Used=1).Create() #Added sensor type
         DumpConfigToLog()
         Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded.")
         return
@@ -198,18 +211,27 @@ class BasePlugin:
         if (Parameters["Mode3"] == "S2B8PO"): StopBits, ByteSize, Parity = 2, 8, "O"
 
         # How many registers to read (depending on data type)?
+	# Added additional options for byte/word swapping
         registercount = 1 # Default
         if (Parameters["Mode6"] == "noco"): registercount = 1
         if (Parameters["Mode6"] == "int8"): registercount = 1
         if (Parameters["Mode6"] == "int16"): registercount = 1
+        if (Parameters["Mode6"] == "int16s"): registercount = 1
         if (Parameters["Mode6"] == "int32"): registercount = 2
+        if (Parameters["Mode6"] == "int32s"): registercount = 2
         if (Parameters["Mode6"] == "int64"): registercount = 4
+        if (Parameters["Mode6"] == "int64s"): registercount = 4
         if (Parameters["Mode6"] == "uint8"): registercount = 1
         if (Parameters["Mode6"] == "uint16"): registercount = 1
+        if (Parameters["Mode6"] == "uint16s"): registercount = 1
         if (Parameters["Mode6"] == "uint32"): registercount = 2
+        if (Parameters["Mode6"] == "uint32s"): registercount = 2
         if (Parameters["Mode6"] == "uint64"): registercount = 4
+        if (Parameters["Mode6"] == "uint64s"): registercount = 4
         if (Parameters["Mode6"] == "float32"): registercount = 2
+        if (Parameters["Mode6"] == "float32s"): registercount = 2
         if (Parameters["Mode6"] == "float64"): registercount = 4
+        if (Parameters["Mode6"] == "float64s"): registercount = 4
         if (Parameters["Mode6"] == "string2"): registercount = 2
         if (Parameters["Mode6"] == "string4"): registercount = 4
         if (Parameters["Mode6"] == "string6"): registercount = 6
@@ -266,18 +288,36 @@ class BasePlugin:
 
           try:
             # How to decode the input?
-            decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+            # Added option to swap bytes (little endian)
+            if (Parameters["Mode6"] == "int16s" or Parameters["Mode6"] == "uint16s"): 
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+            # Added option to swap words (little endian)
+            elif (Parameters["Mode6"] == "int32s" or Parameters["Mode6"] == "uint32s" or Parameters["Mode6"] == "int64s" or Parameters["Mode6"] == "uint64s" 
+                  or Parameters["Mode6"] == "float32s" or Parameters["Mode6"] == "float64s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+            # Otherwise always big endian
+            else:
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+
             if (Parameters["Mode6"] == "noco"): value = data.registers[0]
             if (Parameters["Mode6"] == "int8"): value = decoder.decode_8bit_int()
             if (Parameters["Mode6"] == "int16"): value = decoder.decode_16bit_int()
+            if (Parameters["Mode6"] == "int16s"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int32"): value = decoder.decode_32bit_int()
+            if (Parameters["Mode6"] == "int32s"): value = decoder.decode_32bit_int()
             if (Parameters["Mode6"] == "int64"): value = decoder.decode_64bit_int()
+            if (Parameters["Mode6"] == "int64s"): value = decoder.decode_64bit_int()
             if (Parameters["Mode6"] == "uint8"): value = decoder.decode_8bit_uint()
             if (Parameters["Mode6"] == "uint16"): value = decoder.decode_16bit_uint()
+            if (Parameters["Mode6"] == "uint16s"): value = decoder.decode_16bit_uint()
             if (Parameters["Mode6"] == "uint32"): value = decoder.decode_32bit_uint()
+            if (Parameters["Mode6"] == "uint32s"): value = decoder.decode_32bit_uint()
             if (Parameters["Mode6"] == "uint64"): value = decoder.decode_64bit_uint()
+            if (Parameters["Mode6"] == "uint64s"): value = decoder.decode_64bit_uint()
             if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
+            if (Parameters["Mode6"] == "float32s"): value = decoder.decode_32bit_float()
             if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
+            if (Parameters["Mode6"] == "float64s"): value = decoder.decode_64bit_float()
             if (Parameters["Mode6"] == "string2"): value = decoder.decode_string(2)
             if (Parameters["Mode6"] == "string4"): value = decoder.decode_string(4)
             if (Parameters["Mode6"] == "string6"): value = decoder.decode_string(6)
@@ -285,11 +325,13 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
 
             # Divide the value (decimal)?
+            # Added 10000 option
             if (Parameters["Mode5"] == "div0"): value = str(value)
             if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
             if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
             if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
-
+            if (Parameters["Mode5"] == "div10000"): value = str(round(value / 10000, 4))
+            
             Devices[1].Update(0, value) # Update value in Domoticz
 
           except:
@@ -313,18 +355,36 @@ class BasePlugin:
 
           try:
             # How to decode the input?
-            decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
-            if (Parameters["Mode6"] == "noco"): value = data[0]
+            # Added option to swap bytes (little endian)
+            if (Parameters["Mode6"] == "int16s" or Parameters["Mode6"] == "uint16s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+            # Added option to swap words (little endian)
+            elif (Parameters["Mode6"] == "int32s" or Parameters["Mode6"] == "uint32s" or Parameters["Mode6"] == "int64s" or Parameters["Mode6"] == "uint64s" 
+                  or Parameters["Mode6"] == "float32s" or Parameters["Mode6"] == "float64s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+            # Otherwise always big endian
+            else:
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+
+            if (Parameters["Mode6"] == "noco"): value = data.registers[0]
             if (Parameters["Mode6"] == "int8"): value = decoder.decode_8bit_int()
             if (Parameters["Mode6"] == "int16"): value = decoder.decode_16bit_int()
+            if (Parameters["Mode6"] == "int16s"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int32"): value = decoder.decode_32bit_int()
+            if (Parameters["Mode6"] == "int32s"): value = decoder.decode_32bit_int()
             if (Parameters["Mode6"] == "int64"): value = decoder.decode_64bit_int()
+            if (Parameters["Mode6"] == "int64s"): value = decoder.decode_64bit_int()
             if (Parameters["Mode6"] == "uint8"): value = decoder.decode_8bit_uint()
             if (Parameters["Mode6"] == "uint16"): value = decoder.decode_16bit_uint()
+            if (Parameters["Mode6"] == "uint16s"): value = decoder.decode_16bit_uint()
             if (Parameters["Mode6"] == "uint32"): value = decoder.decode_32bit_uint()
+            if (Parameters["Mode6"] == "uint32s"): value = decoder.decode_32bit_uint()
             if (Parameters["Mode6"] == "uint64"): value = decoder.decode_64bit_uint()
+            if (Parameters["Mode6"] == "uint64s"): value = decoder.decode_64bit_uint()
             if (Parameters["Mode6"] == "float32"): value = decoder.decode_32bit_float()
+            if (Parameters["Mode6"] == "float32s"): value = decoder.decode_32bit_float()
             if (Parameters["Mode6"] == "float64"): value = decoder.decode_64bit_float()
+            if (Parameters["Mode6"] == "float64s"): value = decoder.decode_64bit_float()
             if (Parameters["Mode6"] == "string2"): value = decoder.decode_string(2)
             if (Parameters["Mode6"] == "string4"): value = decoder.decode_string(4)
             if (Parameters["Mode6"] == "string6"): value = decoder.decode_string(6)
@@ -332,17 +392,13 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
 
             # Divide the value (decimal)?
+            # Added 10000 option
             if (Parameters["Mode5"] == "div0"): value = str(value)
             if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
             if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
             if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
+            if (Parameters["Mode5"] == "div10000"): value = str(round(value / 10000, 4))
 
-            Devices[1].Update(0, value) # Update value in Domoticz
-
-            # Section to make icons work with coils (#user bictest)
-            if (Parameters["Username"] == "1") and (value == "1"): Devices[1].Update(1, "1") # Update value in Domoticz
-            if (Parameters["Username"] == "1") and (value == "0"): Devices[1].Update(0, "0") # Update value in Domoticz
-            if (Parameters["Username"] != "1") and (value == "0"): Devices[1].Update(0, "0") # Update value in Domoticz
             if (Parameters["Username"] == "1") and (value != "0"): Devices[1].Update(1, value) # Update value in Domoticz
             
           except:
