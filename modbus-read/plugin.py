@@ -13,7 +13,7 @@
 # Added more options for data type (swapping of low/high byte/word).
 # Adjusted dividing settings to include 10000.
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.2" author="S. Ebeltjes / domoticx.nl" version="1.1.2" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.3" author="S. Ebeltjes / domoticx.nl" version="1.1.3" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
