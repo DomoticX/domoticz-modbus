@@ -7,10 +7,25 @@
 # - pymodbus AND pymodbusTCP:
 #   - Install for python 3.x with: sudo pip3 install -U pymodbus pymodbusTCP
 #
+# - For Synology NAS DSM you may need to install these dependencies for python3:
+#   - sudo pip3 install -U pymodbus constants
+#   - sudo pip3 install -U pymodbus payload
+#   - sudo pip3 install -U pymodbus serial
+#
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
+# v1.1.1 - Sandolution
+# - Added more append paths
+#
+# v1.1.0 - Sandolution
+# - Added import RTU framer for RTU over TCP to work.
+# - Fix for unit id on RTU over TCP
+#
+# v1.0.9 - S. Ebeltjes
+# - Added ID option vor IP/TCP addresses.
+#
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.0.8" author="S. Ebeltjes / domoticx.nl" version="1.0.8" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.1" author="S. Ebeltjes / domoticx.nl" version="1.1.1" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -56,7 +71,7 @@
                 <option label="StopBits 2 / ByteSize 8 / Parity: Odd" value="S2B8PO"/>
             </options>
         </param>
-        <param field="Address" label="Device address" width="120px" required="true"/>
+        <param field="Address" label="Device address /ID(TCP)" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" value="502" width="75px"/>
         <param field="Username" label="Modbus Function" width="280px" required="true">
             <options>
@@ -75,11 +90,25 @@
 import Domoticz
 
 import sys
+# Raspberry Pi
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
+# Synology NAS DSM 6.2 python 3.5.1
+#sys.path.append('/usr/local/lib/python3.5/site-packages')
+#sys.path.append('/volume1/@appstore/py3k/usr/local/lib/python3.5/site-packages')
+
+# Windows 10 Python 3.5.1
+#sys.path.append("C:/Users/USER_NAME/AppData/Local/Programs/Python/Python37/Lib/site-packages"
+
+# RTU
 from pymodbus.client.sync import ModbusSerialClient
+
+# RTU over TCP
 from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.transaction import ModbusRtuFramer
+
+# TCP/IP
 from pyModbusTCP.client import ModbusClient
 
 from pymodbus.constants import Endian
@@ -132,12 +161,21 @@ class BasePlugin:
         if (str(Command) == "On"): payload = Parameters["Mode5"]
         if (str(Command) == "Off"): payload = Parameters["Mode6"]
 
+		# Split address to support TCP/IP device ID
+		AddressData = Parameters["Address"].split("/") # Split on "/"
+		UnitAddress = AddressData[0]
+
+		# Is there a unit ID given after the IP? (e.g. 192.168.2.100/56)
+	    UnitIdForIp = 1 # Default
+		if len(AddressData) > 1:
+		  UnitIdForIp = AddressData[1]
+		
         ###################################
         # pymodbus: RTU / ASCII
         ###################################
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
           Domoticz.Debug("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+" BaudRate="+Parameters["Mode2"]+" StopBits="+str(StopBits)+" ByteSize="+str(ByteSize)+" Parity="+Parity)
-          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+" Address="+UnitAddress+" Register="+Parameters["Password"]+" Function="+Parameters["Username"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
@@ -148,22 +186,22 @@ class BasePlugin:
         # pymodbus: RTU over TCP
         ###################################
         if (Parameters["Mode1"] == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+Parameters["Address"]+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+UnitAddress+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
-            client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]), timeout=5)
+			client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5, framer=ModbusRtuFramer)
           except:
-            Domoticz.Log("Error opening TCP interface on adress: "+Parameters["Address"])
+            Domoticz.Log("Error opening TCP interface on adress: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
 
         ###################################
         # pymodbusTCP: TCP/IP
         ###################################
         if (Parameters["Mode1"] == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+UnitAddress+", Port="+Parameters["Port"]+", Unit ID="+UnitIdForIp+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
           try:
-            client = ModbusClient(host=Parameters["Address"], port=int(Parameters["Port"]), auto_open=True, auto_close=True, timeout=5)
+            client = ModbusClient(host=UnitAddress, port=int(Parameters["Port"]), unit_id=UnitIdForIp, auto_open=True, auto_close=True, timeout=5)
           except:
-            Domoticz.Log("Error opening TCP/IP interface on address: "+Parameters["Address"])
+            Domoticz.Log("Error opening TCP/IP interface on address: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device in Domoticz
 
         ###################################
@@ -172,10 +210,10 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii" or Parameters["Mode1"] == "rtutcp"):
           try:
             # Which function to execute? RTU/ASCII/RTU over TCP
-            if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
-            if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
-            if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
-            if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
             client.close()
 
             if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
