@@ -7,6 +7,11 @@
 # - pymodbus AND pymodbusTCP:
 #   - Install for python 3.x with: sudo pip3 install -U pymodbus pymodbusTCP
 #
+# - For Synology NAS DSM you may need to install these dependencies for python3:
+#   - sudo pip3 install -U pymodbus constants
+#   - sudo pip3 install -U pymodbus payload
+#   - sudo pip3 install -U pymodbus serial
+
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 # sebekhtc (v1.1.6)
