@@ -144,6 +144,7 @@ import Domoticz
 import sys
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
+sys.path.append('/usr/local/lib/python3.6/dist-packages')
 
 from pymodbus.client.sync import ModbusSerialClient
 from pymodbus.client.sync import ModbusTcpClient
@@ -290,16 +291,16 @@ class BasePlugin:
             # How to decode the input?
             # Added option to swap bytes (little endian)
             if (Parameters["Mode6"] == "int16s" or Parameters["Mode6"] == "uint16s"): 
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Little, wordorder=Endian.Big)
             # Added option to swap words (little endian)
             elif (Parameters["Mode6"] == "int32s" or Parameters["Mode6"] == "uint32s" or Parameters["Mode6"] == "int64s" or Parameters["Mode6"] == "uint64s" 
                   or Parameters["Mode6"] == "float32s" or Parameters["Mode6"] == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Little)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
 
-            if (Parameters["Mode6"] == "noco"): value = data.registers[0]
+            if (Parameters["Mode6"] == "noco"): value = data
             if (Parameters["Mode6"] == "int8"): value = decoder.decode_8bit_int()
             if (Parameters["Mode6"] == "int16"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int16s"): value = decoder.decode_16bit_int()
@@ -357,16 +358,16 @@ class BasePlugin:
             # How to decode the input?
             # Added option to swap bytes (little endian)
             if (Parameters["Mode6"] == "int16s" or Parameters["Mode6"] == "uint16s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Little, wordorder=Endian.Big)
             # Added option to swap words (little endian)
             elif (Parameters["Mode6"] == "int32s" or Parameters["Mode6"] == "uint32s" or Parameters["Mode6"] == "int64s" or Parameters["Mode6"] == "uint64s" 
                   or Parameters["Mode6"] == "float32s" or Parameters["Mode6"] == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Little)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
 
-            if (Parameters["Mode6"] == "noco"): value = data.registers[0]
+            if (Parameters["Mode6"] == "noco"): value = data
             if (Parameters["Mode6"] == "int8"): value = decoder.decode_8bit_int()
             if (Parameters["Mode6"] == "int16"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int16s"): value = decoder.decode_16bit_int()
@@ -399,7 +400,7 @@ class BasePlugin:
             if (Parameters["Mode5"] == "div1000"): value = str(round(value / 1000, 3))
             if (Parameters["Mode5"] == "div10000"): value = str(round(value / 10000, 4))
 
-            if (Parameters["Username"] == "1") and (value != "0"): Devices[1].Update(1, value) # Update value in Domoticz
+            if (value != "0"): Devices[1].Update(1, value) # Update value in Domoticz
             
           except:
             Domoticz.Log("Modbus error decoding or recieved no data (TCP/IP)!, check your settings!")
