@@ -14,7 +14,13 @@
 
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
-# v1.1.7 - Sandolution:
+# v1.1.8 - akliouev
+# - Added "sys.path.append('/usr/local/lib/python3.5/dist-packages')" in the begining for modern python libraries compatibility
+# - After wrestling for a day finaly found out that "data" is a list and doesn't have method ".registers" associated with it.
+#   Must be remnants of older pymodbus versions. Changed "data.registers" -> "data"
+# - Fix: line 403 was verifying that Username is "1" (only "read coil") and otherwise wasn't updating anything
+
+# v1.1.7 - Sandolution
 # - Removed debug option due to implementation of sensor type.
 # - Added more options for data type (swapping of low/high byte/word).
 # - Adjusted dividing settings to include 10000.
@@ -31,8 +37,14 @@
 # - Removed debug option due to implementation of sensor type.
 # - Added more options for data type (swapping of low/high byte/word).
 # - Adjusted dividing settings to include 10000.
+#
+# TODO: float decode word orders
+# float AB CD == byteorder=Endian.Big, wordorder=Endian.Big
+# float CD AB == byteorder=Endian.Big, wordorder=Endian.Little
+# float BA DC == byteorder=Endian.Little, wordorder=Endian.Big
+# float DC BA == byteorder=Endian.Little, wordorder=Endian.Little
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.7" author="S. Ebeltjes / domoticx.nl" version="1.1.7" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.8" author="S. Ebeltjes / domoticx.nl" version="1.1.8" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
@@ -124,37 +136,37 @@
 	<param field="Mode4" label="Sensor type" width="180px" required="true" value="Custom">
             <options>
                 <option label="Air Quality" value="Air Quality"/>
-		<option label="Alert" value="Alert"/>
-		<option label="Barometer" value="Barometer"/>
-		<option label="Counter Incremental" value="Counter Incremental"/>
-		<option label="Current/Ampere" value="Current/Ampere"/>
-		<option label="Current (Single)" value="Current (Single)"/>
-		<option label="Custom" value="Custom" default="true"/>
-		<option label="Distance" value="Distance"/>
-		<option label="Gas" value="Gas"/>
-		<option label="Humidity" value="Humidity"/>
-		<option label="Illumination" value="Illumination"/>
-		<option label="kWh" value="kWh"/>
-		<option label="Leaf Wetness" value="Leaf Wetness"/>
-		<option label="Percentage" value="Percentage"/>
-		<option label="Pressure" value="Pressure"/>
-		<option label="Rain" value="Rain"/>
-		<option label="Selector Switch" value="Selector Switch"/>
-		<option label="Soil Moisture" value="Soil Moisture"/>
-		<option label="Solar Radiation" value="Solar Radiation"/>
-		<option label="Sound Level" value="Sound Level"/>
-		<option label="Switch" value="Switch"/>
-		<option label="Temperature" value="Temperature"/>
-		<option label="Temp+Hum" value="Temp+Hum"/>
-		<option label="Temp+Hum+Baro" value="Temp+Hum+Baro"/>
-		<option label="Text" value="Text"/>
-		<option label="Usage" value="Usage"/>
-		<option label="UV" value="UV"/>
-		<option label="Visibility" value="Visibility"/>
-		<option label="Voltage" value="Voltage"/>
-		<option label="Waterflow" value="Waterflow"/>
-		<option label="Wind" value="Wind"/>
-		<option label="Wind+Temp+Chill" value="Wind+Temp+Chill"/>
+                <option label="Alert" value="Alert"/>
+                <option label="Barometer" value="Barometer"/>
+                <option label="Counter Incremental" value="Counter Incremental"/>
+                <option label="Current/Ampere" value="Current/Ampere"/>
+                <option label="Current (Single)" value="Current (Single)"/>
+                <option label="Custom" value="Custom" default="true"/>
+                <option label="Distance" value="Distance"/>
+                <option label="Gas" value="Gas"/>
+                <option label="Humidity" value="Humidity"/>
+                <option label="Illumination" value="Illumination"/>
+                <option label="kWh" value="kWh"/>
+                <option label="Leaf Wetness" value="Leaf Wetness"/>
+                <option label="Percentage" value="Percentage"/>
+                <option label="Pressure" value="Pressure"/>
+                <option label="Rain" value="Rain"/>
+                <option label="Selector Switch" value="Selector Switch"/>
+                <option label="Soil Moisture" value="Soil Moisture"/>
+                <option label="Solar Radiation" value="Solar Radiation"/>
+                <option label="Sound Level" value="Sound Level"/>
+                <option label="Switch" value="Switch"/>
+                <option label="Temperature" value="Temperature"/>
+                <option label="Temp+Hum" value="Temp+Hum"/>
+                <option label="Temp+Hum+Baro" value="Temp+Hum+Baro"/>
+                <option label="Text" value="Text"/>
+                <option label="Usage" value="Usage"/>
+                <option label="UV" value="UV"/>
+                <option label="Visibility" value="Visibility"/>
+                <option label="Voltage" value="Voltage"/>
+                <option label="Waterflow" value="Waterflow"/>
+                <option label="Wind" value="Wind"/>
+                <option label="Wind+Temp+Chill" value="Wind+Temp+Chill"/>
             </options>
         </param>
     </params>
@@ -346,7 +358,7 @@ class BasePlugin:
             else:
               decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
 
-            if (Parameters["Mode6"] == "noco"): value = data.registers[0]
+            if (Parameters["Mode6"] == "noco"): value = data
             if (Parameters["Mode6"] == "int8LSB"):
               ignored = decoder.skip_bytes(1)
               value = decoder.decode_8bit_int()
@@ -418,7 +430,7 @@ class BasePlugin:
             else:
               decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
 
-            if (Parameters["Mode6"] == "noco"): value = data.registers[0]
+            if (Parameters["Mode6"] == "noco"): value = data
             if (Parameters["Mode6"] == "int8LSB"):
               ignored = decoder.skip_bytes(1)
               value = decoder.decode_8bit_int()
