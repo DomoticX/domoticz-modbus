@@ -9,6 +9,10 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
+# sebekhtc (v1.1.6)
+# - Added import RTU framer for RTU over TCP to work.
+# - Fix for unit id on RTU over TCP
+#
 # S. Ebeltjes (v1.1.5)
 # - Added ID option vor IP/TCP adresses.
 #
@@ -17,7 +21,7 @@
 # - Added more options for data type (swapping of low/high byte/word).
 # - Adjusted dividing settings to include 10000.
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.4" author="S. Ebeltjes / domoticx.nl" version="1.1.3" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.6" author="S. Ebeltjes / domoticx.nl" version="1.1.6" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
@@ -149,10 +153,15 @@ import sys
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
+# RTU
 from pymodbus.client.sync import ModbusSerialClient
-from pymodbus.client.sync import ModbusTcpClient
-from pyModbusTCP.client import ModbusClient
 
+# RTU over TCP
+from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.transaction import ModbusRtuFramer
+
+# TCP/IP
+from pyModbusTCP.client import ModbusClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 
@@ -290,10 +299,10 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii" or Parameters["Mode1"] == "rtutcp"):
           try:
             # Which function to execute? RTU/ASCII/RTU over TCP
-            if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
-            if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
-            if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
-            if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
+            if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(UnitIdForIp))
             Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
           except:
             Domoticz.Log("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")

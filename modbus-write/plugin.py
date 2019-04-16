@@ -9,11 +9,15 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
+# sebekhtc (v1.1.0)
+# - Added import RTU framer for RTU over TCP to work.
+# - Fix for unit id on RTU over TCP
+#
 # S. Ebeltjes (v1.0.9)
 # - Added ID option vor IP/TCP adresses.
 #
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.0.9" author="S. Ebeltjes / domoticx.nl" version="1.0.8" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.0" author="S. Ebeltjes / domoticx.nl" version="1.1.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -81,8 +85,14 @@ import sys
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
 
+# RTU
 from pymodbus.client.sync import ModbusSerialClient
+
+# RTU over TCP
 from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.transaction import ModbusRtuFramer
+
+# TCP/IP
 from pyModbusTCP.client import ModbusClient
 
 from pymodbus.constants import Endian
@@ -162,7 +172,7 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtutcp"):
           Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+UnitAddress+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
-            client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5)
+			client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5, framer=ModbusRtuFramer)
           except:
             Domoticz.Log("Error opening TCP interface on adress: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
@@ -184,10 +194,10 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii" or Parameters["Mode1"] == "rtutcp"):
           try:
             # Which function to execute? RTU/ASCII/RTU over TCP
-            if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(UnitAddress))
-            if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(UnitAddress))
-            if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(UnitAddress))
-            if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(UnitAddress))
+            if (Parameters["Username"] == "5"): result = client.write_coil(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "6"): result = client.write_register(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "15"): result = client.write_coils(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
+            if (Parameters["Username"] == "16"): result = client.write_registers(int(Parameters["Password"]), int(payload, 16), unit=int(UnitIdForIp))
             client.close()
 
             if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON in Domoticz
