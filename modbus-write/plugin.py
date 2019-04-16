@@ -14,15 +14,18 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
-# sebekhtc (v1.1.0)
+# v1.1.1 - Sandolution
+# - Added more append paths
+#
+# v1.1.0 - Sandolution
 # - Added import RTU framer for RTU over TCP to work.
 # - Fix for unit id on RTU over TCP
 #
-# S. Ebeltjes (v1.0.9)
-# - Added ID option vor IP/TCP adresses.
+# v1.0.9 - S. Ebeltjes
+# - Added ID option vor IP/TCP addresses.
 #
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.0" author="S. Ebeltjes / domoticx.nl" version="1.1.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.1" author="S. Ebeltjes / domoticx.nl" version="1.1.1" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -87,8 +90,16 @@
 import Domoticz
 
 import sys
+# Raspberry Pi
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
+
+# Synology NAS DSM 6.2 python 3.5.1
+#sys.path.append('/usr/local/lib/python3.5/site-packages')
+#sys.path.append('/volume1/@appstore/py3k/usr/local/lib/python3.5/site-packages')
+
+# Windows 10 Python 3.5.1
+#sys.path.append("C:/Users/USER_NAME/AppData/Local/Programs/Python/Python37/Lib/site-packages"
 
 # RTU
 from pymodbus.client.sync import ModbusSerialClient

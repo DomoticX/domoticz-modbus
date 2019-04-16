@@ -14,19 +14,25 @@
 
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
-# sebekhtc (v1.1.6)
+# v1.1.7 - Sandolution:
+# - Removed debug option due to implementation of sensor type.
+# - Added more options for data type (swapping of low/high byte/word).
+# - Adjusted dividing settings to include 10000.
+# - Added more append paths
+#
+# v1.1.6 - Sandolution
 # - Added import RTU framer for RTU over TCP to work.
 # - Fix for unit id on RTU over TCP
 #
-# S. Ebeltjes (v1.1.5)
-# - Added ID option vor IP/TCP adresses.
+# v1.1.5 - S. Ebeltjes
+# - Added ID option for IP/TCP addresses.
 #
-# Sandolution (v1.1.4):
+# v1.1.4 - Sandolution
 # - Removed debug option due to implementation of sensor type.
 # - Added more options for data type (swapping of low/high byte/word).
 # - Adjusted dividing settings to include 10000.
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.6" author="S. Ebeltjes / domoticx.nl" version="1.1.6" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.7" author="S. Ebeltjes / domoticx.nl" version="1.1.7" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
@@ -80,14 +86,16 @@
         <param field="Mode6" label="Data type" width="180px" required="true">
             <options>
                 <option label="No conversion (1 register)" value="noco"/>
-                <option label="INT 8-Bit" value="int8"/>
+                <option label="INT 8-Bit LSB" value="int8LSB"/>
+                <option label="INT 8-Bit MSB" value="int8MSB"/>
                 <option label="INT 16-Bit" value="int16"/>
                 <option label="INT 16-Bit Swapped" value="int16s"/>
                 <option label="INT 32-Bit" value="int32"/>
                 <option label="INT 32-Bit Swapped" value="int32s"/>
                 <option label="INT 64-Bit" value="int64"/>
                 <option label="INT 64-Bit Swapped" value="int64s"/>
-                <option label="UINT 8-Bit" value="uint8"/>
+                <option label="UINT 8-Bit LSB" value="uint8LSB"/>
+                <option label="UINT 8-Bit MSB" value="uint8MSB"/>
                 <option label="UINT 16-Bit" value="uint16" default="true"/>
                 <option label="UINT 16-Bit Swapped" value="uint16s"/>
                 <option label="UINT 32-Bit" value="uint32"/>
@@ -155,8 +163,16 @@
 import Domoticz
 
 import sys
+# Raspberry Pi
 sys.path.append('/usr/local/lib/python3.4/dist-packages')
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
+
+# Synology NAS DSM 6.2 python 3.5.1
+#sys.path.append('/usr/local/lib/python3.5/site-packages')
+#sys.path.append('/volume1/@appstore/py3k/usr/local/lib/python3.5/site-packages')
+
+# Windows 10 Python 3.5.1
+#sys.path.append("C:/Users/USER_NAME/AppData/Local/Programs/Python/Python37/Lib/site-packages"
 
 # RTU
 from pymodbus.client.sync import ModbusSerialClient
@@ -173,6 +189,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 # Declare internal variables
 result = ""
 value = 0
+ignored = 0
 data = []
 
 class BasePlugin:
@@ -232,14 +249,16 @@ class BasePlugin:
 	    # Added additional options for byte/word swapping
         registercount = 1 # Default
         if (Parameters["Mode6"] == "noco"): registercount = 1
-        if (Parameters["Mode6"] == "int8"): registercount = 1
+        if (Parameters["Mode6"] == "int8LSB"): registercount = 1
+        if (Parameters["Mode6"] == "int8MSB"): registercount = 1
         if (Parameters["Mode6"] == "int16"): registercount = 1
         if (Parameters["Mode6"] == "int16s"): registercount = 1
         if (Parameters["Mode6"] == "int32"): registercount = 2
         if (Parameters["Mode6"] == "int32s"): registercount = 2
         if (Parameters["Mode6"] == "int64"): registercount = 4
         if (Parameters["Mode6"] == "int64s"): registercount = 4
-        if (Parameters["Mode6"] == "uint8"): registercount = 1
+        if (Parameters["Mode6"] == "uint8LSB"): registercount = 1
+        if (Parameters["Mode6"] == "uint8MSB"): registercount = 1
         if (Parameters["Mode6"] == "uint16"): registercount = 1
         if (Parameters["Mode6"] == "uint16s"): registercount = 1
         if (Parameters["Mode6"] == "uint32"): registercount = 2
@@ -282,7 +301,7 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtutcp"):
           Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+UnitAddress+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
           try:
-            client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5)
+            client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=5)
           except:
             Domoticz.Log("Error opening TCP interface on address: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device in Domoticz
@@ -327,14 +346,20 @@ class BasePlugin:
               decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
 
             if (Parameters["Mode6"] == "noco"): value = data.registers[0]
-            if (Parameters["Mode6"] == "int8"): value = decoder.decode_8bit_int()
+            if (Parameters["Mode6"] == "int8LSB"):
+              ignored = decoder.skip_bytes(1)
+              value = decoder.decode_8bit_int()
+            if (Parameters["Mode6"] == "int8MSB"): value = decoder.decode_8bit_int()
             if (Parameters["Mode6"] == "int16"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int16s"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int32"): value = decoder.decode_32bit_int()
             if (Parameters["Mode6"] == "int32s"): value = decoder.decode_32bit_int()
             if (Parameters["Mode6"] == "int64"): value = decoder.decode_64bit_int()
             if (Parameters["Mode6"] == "int64s"): value = decoder.decode_64bit_int()
-            if (Parameters["Mode6"] == "uint8"): value = decoder.decode_8bit_uint()
+            if (Parameters["Mode6"] == "uint8LSB"):
+              ignored = decoder.skip_bytes(1)
+              value = decoder.decode_8bit_uint()
+            if (Parameters["Mode6"] == "uint8MSB"): value = decoder.decode_8bit_uint()
             if (Parameters["Mode6"] == "uint16"): value = decoder.decode_16bit_uint()
             if (Parameters["Mode6"] == "uint16s"): value = decoder.decode_16bit_uint()
             if (Parameters["Mode6"] == "uint32"): value = decoder.decode_32bit_uint()
@@ -352,7 +377,6 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
 
             # Divide the value (decimal)?
-            # Added 10000 option
             if (Parameters["Mode5"] == "div0"): value = str(value)
             if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
             if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
@@ -362,7 +386,7 @@ class BasePlugin:
             Devices[1].Update(0, value) # Update value in Domoticz
 
           except:
-            Domoticz.Log("Modbus error decoding or recieved no data (RTU/ASCII/RTU over TCP)!, check your settings!")
+            Domoticz.Log("Modbus error decoding or received no data (RTU/ASCII/RTU over TCP)!, check your settings!")
             Devices[1].Update(0, "0") # Update value in Domoticz
 
         ###################################
@@ -394,14 +418,20 @@ class BasePlugin:
               decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
 
             if (Parameters["Mode6"] == "noco"): value = data.registers[0]
-            if (Parameters["Mode6"] == "int8"): value = decoder.decode_8bit_int()
+            if (Parameters["Mode6"] == "int8LSB"):
+              ignored = decoder.skip_bytes(1)
+              value = decoder.decode_8bit_int()
+            if (Parameters["Mode6"] == "int8MSB"): value = decoder.decode_8bit_int()
             if (Parameters["Mode6"] == "int16"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int16s"): value = decoder.decode_16bit_int()
             if (Parameters["Mode6"] == "int32"): value = decoder.decode_32bit_int()
             if (Parameters["Mode6"] == "int32s"): value = decoder.decode_32bit_int()
             if (Parameters["Mode6"] == "int64"): value = decoder.decode_64bit_int()
             if (Parameters["Mode6"] == "int64s"): value = decoder.decode_64bit_int()
-            if (Parameters["Mode6"] == "uint8"): value = decoder.decode_8bit_uint()
+            if (Parameters["Mode6"] == "uint8LSB"):
+              ignored = decoder.skip_bytes(1)
+              value = decoder.decode_8bit_uint()
+            if (Parameters["Mode6"] == "uint8MSB"): value = decoder.decode_8bit_uint()   
             if (Parameters["Mode6"] == "uint16"): value = decoder.decode_16bit_uint()
             if (Parameters["Mode6"] == "uint16s"): value = decoder.decode_16bit_uint()
             if (Parameters["Mode6"] == "uint32"): value = decoder.decode_32bit_uint()
@@ -419,7 +449,6 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
 
             # Divide the value (decimal)?
-            # Added 10000 option
             if (Parameters["Mode5"] == "div0"): value = str(value)
             if (Parameters["Mode5"] == "div10"): value = str(round(value / 10, 1))
             if (Parameters["Mode5"] == "div100"): value = str(round(value / 100, 2))
@@ -429,7 +458,7 @@ class BasePlugin:
             if (Parameters["Username"] == "1") and (value != "0"): Devices[1].Update(1, value) # Update value in Domoticz
             
           except:
-            Domoticz.Log("Modbus error decoding or recieved no data (TCP/IP)!, check your settings!")
+            Domoticz.Log("Modbus error decoding or received no data (TCP/IP)!, check your settings!")
             Devices[1].Update(0, "0") # Update value in Domoticz
 
     def UpdateDevice(Unit, nValue, sValue):
