@@ -9,11 +9,15 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
-# Sandolution: Removed debug option due to implementation of sensor type.
-# Added more options for data type (swapping of low/high byte/word).
-# Adjusted dividing settings to include 10000.
+# S. Ebeltjes (v1.1.5)
+# - Added ID option vor IP/TCP adresses.
+#
+# Sandolution (v1.1.4):
+# - Removed debug option due to implementation of sensor type.
+# - Added more options for data type (swapping of low/high byte/word).
+# - Adjusted dividing settings to include 10000.
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.3" author="S. Ebeltjes / domoticx.nl" version="1.1.3" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.4" author="S. Ebeltjes / domoticx.nl" version="1.1.3" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
@@ -53,7 +57,7 @@
                 <option label="StopBits 2 / ByteSize 8 / Parity: Odd" value="S2B8PO"/>
             </options>
         </param>
-        <param field="Address" label="Device address" width="120px" required="true"/>
+        <param field="Address" label="Device address /ID(TCP)" width="120px" required="true"/>
         <param field="Port" label="Port (TCP)" value="502" width="75px"/>
         <param field="Username" label="Modbus Function" width="280px" required="true">
             <options>
@@ -211,7 +215,7 @@ class BasePlugin:
         if (Parameters["Mode3"] == "S2B8PO"): StopBits, ByteSize, Parity = 2, 8, "O"
 
         # How many registers to read (depending on data type)?
-	# Added additional options for byte/word swapping
+	    # Added additional options for byte/word swapping
         registercount = 1 # Default
         if (Parameters["Mode6"] == "noco"): registercount = 1
         if (Parameters["Mode6"] == "int8"): registercount = 1
@@ -237,12 +241,21 @@ class BasePlugin:
         if (Parameters["Mode6"] == "string6"): registercount = 6
         if (Parameters["Mode6"] == "string8"): registercount = 8
 
+		# Split address to support TCP/IP device ID
+		AddressData = Parameters["Address"].split("/") # Split on "/"
+		UnitAddress = AddressData[0]
+
+		# Is there a unit ID given after the IP? (e.g. 192.168.2.100/56)
+		UnitIdForIp = 1 # Default
+		if len(AddressData) > 1:
+		  UnitIdForIp = AddressData[1]
+
         ###################################
         # pymodbus: RTU / ASCII
         ###################################
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii"):
           Domoticz.Debug("MODBUS DEBUG USB SERIAL HW - Port="+Parameters["SerialPort"]+", BaudRate="+Parameters["Mode2"]+", StopBits="+str(StopBits)+", ByteSize="+str(ByteSize)+" Parity="+Parity)
-          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Register="+Parameters["Password"]+", Function="+Parameters["Username"]+", Data type="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG USB SERIAL CMD - Method="+Parameters["Mode1"]+", Address="+UnitAddress+", Register="+Parameters["Password"]+", Function="+Parameters["Username"]+", Data type="+Parameters["Mode6"])
           try:
             client = ModbusSerialClient(method=Parameters["Mode1"], port=Parameters["SerialPort"], stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Parameters["Mode2"]), timeout=1, retries=2)
           except:
@@ -253,22 +266,22 @@ class BasePlugin:
         # pymodbus: RTU over TCP
         ###################################
         if (Parameters["Mode1"] == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+UnitAddress+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
           try:
-            client = ModbusTcpClient(host=Parameters["Address"], port=int(Parameters["Port"]), timeout=5)
+            client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5)
           except:
-            Domoticz.Log("Error opening TCP interface on address: "+Parameters["Address"])
+            Domoticz.Log("Error opening TCP interface on address: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device in Domoticz
 
         ###################################
         # pymodbusTCP: TCP/IP
         ###################################
         if (Parameters["Mode1"] == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+Parameters["Address"]+", Port="+Parameters["Port"]+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
+          Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+", Address="+UnitAddress+", Port="+Parameters["Port"]+", Unit ID="+UnitIdForIp+", Register="+Parameters["Password"]+", Data type="+Parameters["Mode6"])
           try:
-            client = ModbusClient(host=Parameters["Address"], port=int(Parameters["Port"]), auto_open=True, auto_close=True, timeout=5)
+            client = ModbusClient(host=UnitAddress, port=int(Parameters["Port"]), unit_id=UnitIdForIp, auto_open=True, auto_close=True, timeout=5)
           except:
-            Domoticz.Log("Error opening TCP/IP interface on address: "+Parameters["Address"])
+            Domoticz.Log("Error opening TCP/IP interface on address: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device in Domoticz
 
         ###################################
@@ -277,10 +290,10 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtu" or Parameters["Mode1"] == "ascii" or Parameters["Mode1"] == "rtutcp"):
           try:
             # Which function to execute? RTU/ASCII/RTU over TCP
-            if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-            if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-            if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
-            if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(Parameters["Address"]))
+            if (Parameters["Username"] == "1"): data = client.read_coils(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
+            if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
+            if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
+            if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount, unit=int(UnitAddress))
             Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
           except:
             Domoticz.Log("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
