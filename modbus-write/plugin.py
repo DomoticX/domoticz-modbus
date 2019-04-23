@@ -13,17 +13,6 @@
 #   - sudo pip3 install -U pymodbus serial
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
-#
-# v1.1.1 - Sandolution
-# - Added more append paths
-#
-# v1.1.0 - Sandolution
-# - Added import RTU framer for RTU over TCP to work.
-# - Fix for unit id on RTU over TCP
-#
-# v1.0.9 - S. Ebeltjes
-# - Added ID option vor IP/TCP addresses.
-#
 """
 <plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.1" author="S. Ebeltjes / domoticx.nl" version="1.1.1" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>

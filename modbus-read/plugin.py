@@ -14,37 +14,8 @@
 
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
-# v1.1.8 - akliouev
-# - Added "sys.path.append('/usr/local/lib/python3.5/dist-packages')" in the begining for modern python libraries compatibility
-# - After wrestling for a day finaly found out that "data" is a list and doesn't have method ".registers" associated with it.
-#   Must be remnants of older pymodbus versions. Changed "data.registers" -> "data"
-# - Fix: line 403 was verifying that Username is "1" (only "read coil") and otherwise wasn't updating anything
-
-# v1.1.7 - Sandolution
-# - Removed debug option due to implementation of sensor type.
-# - Added more options for data type (swapping of low/high byte/word).
-# - Adjusted dividing settings to include 10000.
-# - Added more append paths
-#
-# v1.1.6 - Sandolution
-# - Added import RTU framer for RTU over TCP to work.
-# - Fix for unit id on RTU over TCP
-#
-# v1.1.5 - S. Ebeltjes
-# - Added ID option for IP/TCP addresses.
-#
-# v1.1.4 - Sandolution
-# - Removed debug option due to implementation of sensor type.
-# - Added more options for data type (swapping of low/high byte/word).
-# - Adjusted dividing settings to include 10000.
-#
-# TODO: float decode word orders
-# float AB CD == byteorder=Endian.Big, wordorder=Endian.Big
-# float CD AB == byteorder=Endian.Big, wordorder=Endian.Little
-# float BA DC == byteorder=Endian.Little, wordorder=Endian.Big
-# float DC BA == byteorder=Endian.Little, wordorder=Endian.Little
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.8" author="S. Ebeltjes / domoticx.nl" version="1.1.8" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.1.9" author="S. Ebeltjes / domoticx.nl" version="1.1.9" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
@@ -412,7 +383,7 @@ class BasePlugin:
             if (Parameters["Username"] == "2"): data = client.read_discrete_inputs(int(Parameters["Password"]), registercount)
             if (Parameters["Username"] == "3"): data = client.read_holding_registers(int(Parameters["Password"]), registercount)
             if (Parameters["Username"] == "4"): data = client.read_input_registers(int(Parameters["Password"]), registercount)
-            Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data[0]))
+            Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
           except:
             Domoticz.Log("Modbus error communicating! (TCP/IP), check your settings!")
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
