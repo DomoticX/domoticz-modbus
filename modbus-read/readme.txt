@@ -1,5 +1,8 @@
 Changelog:
 
+v1.2.0
+- Fixed TAB error.
+
 v1.1.9
 - Fixed debug output [Sandolution]
 
