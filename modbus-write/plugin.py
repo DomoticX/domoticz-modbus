@@ -158,7 +158,7 @@ class BasePlugin:
         UnitIdForIp = 1 # Default
         if len(AddressData) > 1:
           UnitIdForIp = AddressData[1]
-		
+
         ###################################
         # pymodbus: RTU / ASCII
         ###################################
@@ -177,7 +177,7 @@ class BasePlugin:
         if (Parameters["Mode1"] == "rtutcp"):
           Domoticz.Debug("MODBUS DEBUG TCP CMD - Method="+Parameters["Mode1"]+" Address="+UnitAddress+" Port="+Parameters["Port"]+" PayLoadON="+Parameters["Mode5"]+" PayLoadOFF="+Parameters["Mode6"])
           try:
-			client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5, framer=ModbusRtuFramer)
+            client = ModbusTcpClient(host=UnitAddress, port=int(Parameters["Port"]), timeout=5, framer=ModbusRtuFramer)
           except:
             Domoticz.Log("Error opening TCP interface on adress: "+UnitAddress)
             Devices[1].Update(0, "0") # Update device to OFF in Domoticz
