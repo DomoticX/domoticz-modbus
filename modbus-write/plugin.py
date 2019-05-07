@@ -14,7 +14,7 @@
 #
 # NOTE: Some "name" fields are abused to put in more options ;-)
 """
-<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.1" author="S. Ebeltjes / domoticx.nl" version="1.1.1" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="ModbusDEV-WRITE" name="Modbus RTU/ASCII/TCP - WRITE v1.1.2" author="S. Ebeltjes / domoticx.nl" version="1.1.2" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode4" label="Debug" width="120px">
             <options>
@@ -150,14 +150,14 @@ class BasePlugin:
         if (str(Command) == "On"): payload = Parameters["Mode5"]
         if (str(Command) == "Off"): payload = Parameters["Mode6"]
 
-		# Split address to support TCP/IP device ID
-		AddressData = Parameters["Address"].split("/") # Split on "/"
-		UnitAddress = AddressData[0]
+        # Split address to support TCP/IP device ID
+        AddressData = Parameters["Address"].split("/") # Split on "/"
+        UnitAddress = AddressData[0]
 
-		# Is there a unit ID given after the IP? (e.g. 192.168.2.100/56)
-	    UnitIdForIp = 1 # Default
-		if len(AddressData) > 1:
-		  UnitIdForIp = AddressData[1]
+        # Is there a unit ID given after the IP? (e.g. 192.168.2.100/56)
+        UnitIdForIp = 1 # Default
+        if len(AddressData) > 1:
+          UnitIdForIp = AddressData[1]
 		
         ###################################
         # pymodbus: RTU / ASCII

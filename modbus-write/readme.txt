@@ -1,5 +1,8 @@
 Changelog:
 
+v1.1.2
+- Fixed TAB error.
+
 v1.1.1
 - Added more append paths. [Sandolution]
 
