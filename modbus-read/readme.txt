@@ -1,4 +1,6 @@
 Changelog:
+v1.2.1
+ - Fixed the exception "Modbus Error: [Invalid Parameter] Invalid collection of registers supplied" on my Raspberry/Domoticz
 
 v1.2.0
 - Fixed TAB error.
