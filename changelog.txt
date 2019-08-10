@@ -1,6 +1,10 @@
-Changelog:
+v2.0.0
+- Fixed exception in modbus library (added .registers again)
+- New plugin: modbus-device [bramvreugd]
+  - With this plugin you can add a device with many registers at once
+
 v1.2.1
- - Fixed the exception "Modbus Error: [Invalid Parameter] Invalid collection of registers supplied" on my Raspberry/Domoticz
+- Fixed the exception "Modbus Error: [Invalid Parameter] Invalid collection of registers supplied" on my Raspberry/Domoticz
 
 v1.2.0
 - Fixed TAB error.

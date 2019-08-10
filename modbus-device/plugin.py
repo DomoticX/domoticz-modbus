@@ -1,6 +1,7 @@
-# Modbus RTU/ASCII/TCP - Universal READ Plugin for Domoticz
+# Modbus RTU/ASCII/TCP - Universal DEVICE Plugin for Domoticz
 #
 # Author: Sebastiaan Ebeltjes / domoticx.nl
+# Commit by: bramvreugd
 # Serial HW: USB RS485-Serial Stick, like: http://domoticx.nl/webwinkel/index.php?route=product/product&product_id=386
 #
 # Dependancies:
@@ -15,7 +16,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus2" name="Modbus device v1.0.0" author="B. Vreugdenhil. based on code by S. Ebeltjes / domoticx.nl" version="1.0.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus2" name="Modbus device" author="B. Vreugdenhil. based on code by S. Ebeltjes / domoticx.nl" version="2.0.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>

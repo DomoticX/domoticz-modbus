@@ -15,7 +15,7 @@
 # NOTE: Some "name" fields are abused to put in more options ;-)
 #
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v1.2.0" author="S. Ebeltjes / domoticx.nl" version="1.2.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ" author="S. Ebeltjes / domoticx.nl" version="2.0.0" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus/">
     <params>
         <param field="Mode1" label="Method" width="120px" required="true">
             <options>
