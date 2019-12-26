@@ -320,16 +320,16 @@ class BasePlugin:
             # How to decode the input?
             # Added option to swap bytes (little endian)
             if (Parameters["Mode6"] == "int16s" or Parameters["Mode6"] == "uint16s"): 
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
             # Added option to swap words (little endian)
             elif (Parameters["Mode6"] == "int32s" or Parameters["Mode6"] == "uint32s" or Parameters["Mode6"] == "int64s" or Parameters["Mode6"] == "uint64s" 
                   or Parameters["Mode6"] == "float32s" or Parameters["Mode6"] == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
 
-            if (Parameters["Mode6"] == "noco"): value = data
+            if (Parameters["Mode6"] == "noco"): value = data.registers[0]
             if (Parameters["Mode6"] == "int8LSB"):
               ignored = decoder.skip_bytes(1)
               value = decoder.decode_8bit_int()
