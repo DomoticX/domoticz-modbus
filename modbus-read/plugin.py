@@ -11,7 +11,7 @@
 #
 
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v2020.2B" author="S. Ebeltjes / domoticx.nl" version="2020.2B" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v2020.2A" author="S. Ebeltjes / domoticx.nl" version="2020.2A" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <params>
         <param field="Mode1" label="Communication Mode" width="160px" required="true">
             <options>
@@ -55,8 +55,8 @@
                 <option label="115200" value="115200"/>
             </options>
         </param>
-        <param field="Address" label="TCP - IP:Port" width="140px" default="192.168.2.1:501"/>
-        <param field="Password" label="Device ID:Pollingrate(sec)" width="50px" default="1:10" required="true"/>
+        <param field="Address" label="TCP - IP:Port" width="140px" default="1"/>
+        <param field="Port" label="Device ID" width="50px" default="192.168.x.x:502" required="true"/>
         <param field="Username" label="Modbus Function" width="250px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
@@ -65,7 +65,7 @@
                 <option label="Read Input Registers (Function 4)" value="4" default="true"/>
             </options>
         </param>
-        <param field="Port" label="Register number" width="50px" default="1" required="true"/>
+        <param field="Password" label="Register number" width="50px" default="1" required="true"/>
         <param field="Mode6" label="Data type" width="180px" required="true">
             <options>
                 <option label="No conversion (1 register)" value="noco"/>
@@ -169,19 +169,10 @@ class BasePlugin:
     def onStart(self):
         Domoticz.Log("onStart called")
         
-	    # Set debug yes/no
         Domoticz_Setting_Debug = Parameters["Mode1"].split(":")
         if (Domoticz_Setting_Debug[1] == "debug"):
           Domoticz.Debugging(1) #Enable debugging
           Domoticz.Log("***** NOTIFICATION: Debug enabled!")
-
-        # Set device pollrate (heartbeat)
-        Domoticz_Setting_Device_IDPOL = Parameters["Password"].split(":") # Split ID an pollrate setting ID:POLL (Heartbeat)
-        Domoticz_Setting_Device_Pollrate = 10 # Default
-        if len(Domoticz_Setting_Device_IDPOL) > 1: Domoticz_Setting_Device_Pollrate = Domoticz_Setting_Device_IDPOL[1]
-
-        Domoticz.Heartbeat(int(Domoticz_Setting_Device_Pollrate))
-        Domoticz.Log("***** NOTIFICATION: Pollrate (heartbeat): "+Domoticz_Setting_Device_Pollrate+" seconds.")
 
         # Dependancies notification
         if (float(Parameters["DomoticzVersion"]) < float("2020.2")): Domoticz.Log("[b]***** NOTIFICATION: Domoticz version is outdated/not supported, please update![/b]")	
@@ -219,30 +210,25 @@ class BasePlugin:
         #Domoticz.Log("onHeartbeat called")
 
         # Convert "option names" to variables for easy reading and debugging.
-        # Note:
-        # Parameters["Port"] cannot accept other then int! (e.g. 192.192.0.0 will result in 192)
-
-		
         Tempdata = Parameters["Mode1"].split(":")
         Domoticz_Setting_Communication_Mode = Tempdata[0]
         Domoticz_Setting_Serial_Port = Parameters["SerialPort"]
         Domoticz_Setting_Baudrate = Parameters["Mode2"]
         Domoticz_Setting_Port_Mode = Parameters["Mode3"]
-        
-        Domoticz_Setting_Device_IDPOL = Parameters["Password"].split(":") # Split ID an pollrate setting ID:POLL (Heartbeat)
-        Domoticz_Setting_Device_ID = 1 # Default
-        if len(Domoticz_Setting_Device_IDPOL) > 0: Domoticz_Setting_Device_ID = Domoticz_Setting_Device_IDPOL[0]
-        Domoticz_Setting_Device_Pollrate = 10 # Default
-        if len(Domoticz_Setting_Device_IDPOL) > 1: Domoticz_Setting_Device_Pollrate = Domoticz_Setting_Device_IDPOL[1]
+        Domoticz_Setting_Device_ID = Parameters["Port"]
+
+        # Note:
+        # Parameters["Port"] cannot accept other then int! (e.g. 192.192.0.0 will result in 192)
+        # therefore Parameters["Address"] can handle it!
 
         Domoticz_Setting_TCP_IPPORT = Parameters["Address"].split(":") # Split address and port setting TCP:IP
         Domoticz_Setting_TCP_IP = 0 # Default
         if len(Domoticz_Setting_TCP_IPPORT) > 0: Domoticz_Setting_TCP_IP = Domoticz_Setting_TCP_IPPORT[0]
         Domoticz_Setting_TCP_PORT = 0 # Default
         if len(Domoticz_Setting_TCP_IPPORT) > 1: Domoticz_Setting_TCP_PORT = Domoticz_Setting_TCP_IPPORT[1]
-		 
+		
         Domoticz_Setting_Modbus_Function = Parameters["Username"]
-        Domoticz_Setting_Register_Number = Parameters["Port"]
+        Domoticz_Setting_Register_Number = Parameters["Password"]
         Domoticz_Setting_Data_Type = Parameters["Mode6"]
         Domoticz_Setting_Divide_Value = Parameters["Mode5"]
         Domoticz_Setting_Sensor_Type = Parameters["Mode4"]
@@ -296,7 +282,7 @@ class BasePlugin:
         ########################################
         if (Domoticz_Setting_Communication_Mode == "rtu" or Domoticz_Setting_Communication_Mode == "ascii"):
           Domoticz.Debug("MODBUS DEBUG - PORT: Port="+Domoticz_Setting_Serial_Port+", BaudRate="+Domoticz_Setting_Baudrate+", StopBits="+str(StopBits)+", ByteSize="+str(ByteSize)+" Parity="+Parity)
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+Domoticz_Setting_Communication_Mode+", Device ID="+Domoticz_Setting_Device_ID+", Register="+Domoticz_Setting_Register_Number+", Function="+Domoticz_Setting_Modbus_Function+", Data type="+Domoticz_Setting_Data_Type+", Pollrate(sec)="+Domoticz_Setting_Device_Pollrate)
+          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+Domoticz_Setting_Communication_Mode+", Device ID="+Domoticz_Setting_Device_ID+", Register="+Domoticz_Setting_Register_Number+", Function="+Domoticz_Setting_Modbus_Function+", Data type="+Domoticz_Setting_Data_Type)
           try:
             client = ModbusSerialClient(method=Domoticz_Setting_Communication_Mode, port=Domoticz_Setting_Serial_Port, stopbits=StopBits, bytesize=ByteSize, parity=Parity, baudrate=int(Domoticz_Setting_Baudrate), timeout=1, retries=2)
           except:
@@ -307,7 +293,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbus: RTU over TCP
         ########################################
         if (Domoticz_Setting_Communication_Mode == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+Domoticz_Setting_Communication_Mode+", Device ID="+Domoticz_Setting_Device_ID+", Port="+Domoticz_Setting_TCP_PORT+", Register="+Domoticz_Setting_Register_Number+", Data type="+Domoticz_Setting_Data_Type+", Pollrate(sec)="+Domoticz_Setting_Device_Pollrate)
+          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+Domoticz_Setting_Communication_Mode+", Device ID="+Domoticz_Setting_Device_ID+", Port="+Domoticz_Setting_TCP_PORT+", Register="+Domoticz_Setting_Register_Number+", Data type="+Domoticz_Setting_Data_Type)
           try:
             client = ModbusTcpClient(host=Domoticz_Setting_TCP_IP, port=int(Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=5)
           except:
@@ -318,7 +304,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbusTCP: TCP/IP
         ########################################
         if (Domoticz_Setting_Communication_Mode == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+Domoticz_Setting_Communication_Mode+", Device ID="+Domoticz_Setting_Device_ID+", Port="+Domoticz_Setting_TCP_PORT+", Unit ID="+Domoticz_Setting_Device_ID+", Register="+Domoticz_Setting_Register_Number+", Data type="+Domoticz_Setting_Data_Type+", Pollrate(sec)="+Domoticz_Setting_Device_Pollrate)
+          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+Domoticz_Setting_Communication_Mode+", Device ID="+Domoticz_Setting_Device_ID+", Port="+Domoticz_Setting_TCP_PORT+", Unit ID="+Domoticz_Setting_Device_ID+", Register="+Domoticz_Setting_Register_Number+", Data type="+Domoticz_Setting_Data_Type)
           try:
             client = ModbusClient(host=Domoticz_Setting_TCP_IP, port=int(Domoticz_Setting_TCP_PORT), unit_id=Domoticz_Setting_Device_ID, auto_open=True, auto_close=True, timeout=5)
           except:
@@ -371,9 +357,7 @@ class BasePlugin:
           # Otherwise always big endian
           else:
             decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
-
-          Domoticz.Debug("MODBUS DEBUG - VALUE before conversion: " + str(data.registers[0]))
-		 
+          
           if (Domoticz_Setting_Data_Type == "noco"): value = data.registers[0]
           if (Domoticz_Setting_Data_Type == "bool"): value = bool(data.registers[0])
           if (Domoticz_Setting_Data_Type == "int8LSB"):
@@ -404,6 +388,7 @@ class BasePlugin:
           if (Domoticz_Setting_Data_Type == "string4"): value = decoder.decode_string(4)
           if (Domoticz_Setting_Data_Type == "string6"): value = decoder.decode_string(6)
           if (Domoticz_Setting_Data_Type == "string8"): value = decoder.decode_string(8)
+          Domoticz.Debug("MODBUS DEBUG VALUE: " + str(value))
 
           # Divide the value (decimal)?
           if (Domoticz_Setting_Divide_Value == "div0"): value = str(value)
@@ -411,8 +396,6 @@ class BasePlugin:
           if (Domoticz_Setting_Divide_Value == "div100"): value = str(round(value / 100, 2))
           if (Domoticz_Setting_Divide_Value == "div1000"): value = str(round(value / 1000, 3))
           if (Domoticz_Setting_Divide_Value == "div10000"): value = str(round(value / 10000, 4))
-
-          Domoticz.Debug("MODBUS DEBUG - VALUE after conversion: " + str(value))
 
           #if (value != "0"): Devices[1].Update(int(value), str(value)) # Update device value in Domoticz
           #Devices[1].Update(1, value) # Update device value in Domoticz

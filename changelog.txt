@@ -1,7 +1,3 @@
-Modbus READ v2020.2B
-- Added: Device polling rate setting (seconds) (e.g. ID:POLL = 1:10 then Device ID=1 and Pollingrate=10 seconds)
-- Added: Some more debug lines for value output and pollingrate (heartbeat)
-
 Modbus READ v2020.2A
 - Updated the plugin for domoticx 2020.2
 - Fixed: "no data found check settings" for new DomoticZ 2020
