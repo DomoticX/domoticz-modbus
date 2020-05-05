@@ -1,3 +1,14 @@
+Modbus READ v2020.2A
+- Updated the plugin for domoticx 2020.2
+- Fixed: "no data found check settings" for new DomoticZ 2020
+- Fixed: default settings are now filled correctly
+- Added: BOOL conversion (for read coils...not tested on hardware)
+- Added: version checks and notification for needed dependancies
+- Added: ability for debug yes/no (for easy troubleshooting)
+- Improved: TCP IP and PORT options now merged
+- Improved: option descriptions, sorted options
+- Code cleanup
+
 v2.0.0
 - Fixed exception in modbus library (added .registers again)
 - New plugin: modbus-device [bramvreugd]

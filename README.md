@@ -1,9 +1,10 @@
 ### Modbus Read/Write Plugins for Domoticz
-Author: Sebastiaan Ebeltjes / domoticx.nl
+Author: Sebastiaan Ebeltjes / DomoticX.nl
+
+Succesfully Tested on Domoticz version: 2020.2
 
 **Support for:**
 
-* RS232/RS485
 * RTU
 * ASCII
 * RTU over TCP
@@ -19,6 +20,7 @@ Author: Sebastiaan Ebeltjes / domoticx.nl
 Supported data types:
 
 * No conversion (passtrough)
+* BOOL (TRUE/FALSE)
 * INT 8/16/32/64-Bit
 * UINT 8/16/32/64-Bit
 * FLOAT 32/64-Bit
@@ -45,8 +47,6 @@ Place the folders inside the domoticz plugin folder, for example like this const
 
 Then restart domoticz with: ```sudo service domoticz.sh restart```
 
-Succesfully Tested on Domoticz version: 3.8153 (Stable)
-
 -----
 ### Using RTU / ASCII (SERIAL HW)
 
@@ -68,29 +68,15 @@ Succesfully Tested on Domoticz version: 3.8153 (Stable)
 -----
 ### Dependancies
 
-For this plugin to work you need to install some dependancies
+Raspbian iamge (FULL version recommended)
+For this plugin to work you need to install some python3 dependancies:
 
 **pymodbus AND pymodbusTCP**
 
-Install for python 3.x with: ```sudo pip3 install -U pymodbus pymodbusTCP```
-
-**six**
-
-Six is a Python 2 and 3 compatibility library. It provides utility functions for smoothing over the differences between the Python versions with the goal of writing Python code that is compatible on both Python versions.
-
-1) Install for python 3.x with: ```sudo pip3 install -U six```
-
-(will install in /home/pi/.local/lib/python2.7/site-packages/)
-
-2) copy the py file to v3.x python
-
-```sudo cp six.py /usr/lib/python3.4```
-
-or
-
-```sudo cp six.py /usr/lib/python3.5```
+Install with: ```sudo pip3 install -U pymodbus pymodbusTCP```
 
 -----
 ### HW Tested:
 * [Relay board](http://domoticx.com/modbus-relaisbord/)
 * [KWh Meter - EASTRON SDM120](http://domoticx.com/modbus-kwh-meter-eastron-sdm120/)
+* [Temp/Hum sensor - XY-MD01 or XY-MD02](http://domoticx.com/modbus-temp-hum-sensor-xy-md02/)
