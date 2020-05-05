@@ -68,8 +68,8 @@ Then restart domoticz with: ```sudo service domoticz.sh restart```
 -----
 ### Dependancies
 
-Raspbian iamge (FULL version recommended)
-For this plugin to work you need to install some python3 dependancies:
+1. Raspbian image (FULL version recommended)
+2. additional python3 libraries:
 
 **pymodbus AND pymodbusTCP**
 
