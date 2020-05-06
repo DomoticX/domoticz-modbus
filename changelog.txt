@@ -1,3 +1,10 @@
+Modbus READ v2020.2C
+- Added: Plugin description
+- Optimized: All settings read once at plugin start
+- Optimized: Better log, debug, error usage.
+- Fixed: Bug for device update on TCP/IP (on error)
+- Code cleanup
+
 Modbus READ v2020.2B
 - Added: Device polling rate setting (seconds) (e.g. ID:POLL = 1:10 then Device ID=1 and Pollingrate=10 seconds)
 - Added: Some more debug lines for value output and pollingrate (heartbeat)
