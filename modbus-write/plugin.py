@@ -11,21 +11,22 @@
 #
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU/ASCII/TCP - WRITE v2020.2A" author="S. Ebeltjes / DomoticX.nl" version="2020.2A" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU/ASCII/TCP - WRITE v2020.2B" author="S. Ebeltjes / DomoticX.nl" version="2020.2B" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU/ASCII/TCP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
         <br/>
-		<h3>Functions of the READ plugin:</h3>
-        Read Coil (Function 1)<br/>
-        Read Discrete Input (Function 2)<br/>
-        Read Holding Registers (Function 3)<br/>
-        Read Input Registers (Function 4)<br/>
+        <h3>Functions of the WRITE plugin:</h3>
+        Write Single Coil (Function 5)<br/>
+        Write Single Holding Register (Function 6)<br/>
+        Write Multiple Coils (Function 15)<br/>
+        Write Registers (Function 16)<br/>
         <br/>
-        <h3>Supported data types:</h3>
-        No conversion (passtrough) / BOOL / INT / UINT / FLOAT / STRING<br/>
+        <h3>Typical payloads:</h3>
+        HEX Payloads, like: 0x0100<br/>
+		INT Payloads, like: 53<br/>
 		<br/>
-        <h3>Set-up and Configuration</h3>
+        <h3>Set-up and Configuration:</h3>
         See wiki link above.<br/> 
     </description>
     <params>

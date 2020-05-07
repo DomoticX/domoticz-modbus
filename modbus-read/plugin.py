@@ -25,7 +25,7 @@
         <h3>Supported data types:</h3>
         No conversion (passtrough) / BOOL / INT / UINT / FLOAT / STRING<br/>
 		<br/>
-        <h3>Set-up and Configuration</h3>
+        <h3>Set-up and Configuration:</h3>
         See wiki link above.<br/> 
     </description>
     <params>
