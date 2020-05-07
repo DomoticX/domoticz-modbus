@@ -1,3 +1,15 @@
+Modbus WRITE v2020.2A
+- Added: version checks and notification for needed dependancies
+- Improved: TCP IP and PORT options now merged
+- Improved: option descriptions, sorted options
+- Optimized: Debug lines and info
+- Optimized: All settings read once at plugin start
+- Code cleanup
+
+Modbus READ v2020.2D
+- Optimized: Added default device name
+- Optimized: Debug lines and info
+
 Modbus READ v2020.2C
 - Added: Plugin description
 - Optimized: All settings read once at plugin start
@@ -10,8 +22,7 @@ Modbus READ v2020.2B
 - Added: Some more debug lines for value output and pollingrate (heartbeat)
 
 Modbus READ v2020.2A
-- Updated the plugin for domoticx 2020.2
-- Fixed: "no data found check settings" for new DomoticZ 2020
+- Fixed: "no data found check settings" for new domoticz v2020.x
 - Fixed: default settings are now filled correctly
 - Added: BOOL conversion (for read coils...not tested on hardware)
 - Added: version checks and notification for needed dependancies

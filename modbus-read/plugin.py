@@ -11,7 +11,7 @@
 #
 
 """
-<plugin key="Modbus" name="Modbus RTU/ASCII/TCP - READ v2020.2C" author="S. Ebeltjes / domoticx.nl" version="2020.2C" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusREAD" name="Modbus RTU/ASCII/TCP - READ v2020.2D" author="S. Ebeltjes / DomoticX.nl" version="2020.2D" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU/ASCII/TCP - READ</h3>
         With this plugin you can readout RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -160,6 +160,7 @@
     </params>
 </plugin>
 """
+
 import Domoticz
 import sys
 import pymodbus
@@ -276,9 +277,9 @@ class BasePlugin:
         if (self.Domoticz_Setting_Data_Type == "string6"): self.Register_Count = 6
         if (self.Domoticz_Setting_Data_Type == "string8"): self.Register_Count = 8
 		
-        #Due to the lack of more parameter posibility, the name will be the hardware name
+        # Due to the lack of more parameter posibility, the name will be the hardware name
         self.Domoticz_Setting_Sensor_Type = Parameters["Mode4"]
-        if (len(Devices) == 0): Domoticz.Device(Name=" ",  Unit=1, TypeName=self.Domoticz_Setting_Sensor_Type, Image=0, Used=1).Create() #Added sensor type
+        if (len(Devices) == 0): Domoticz.Device(Name="Modbus-READ",  Unit=1, TypeName=self.Domoticz_Setting_Sensor_Type, Image=0, Used=1).Create() #Added sensor type
 
         return
 
@@ -308,7 +309,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbus: RTU / ASCII
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "rtu" or self.Domoticz_Setting_Communication_Mode == "ascii"):
-          Domoticz.Debug("MODBUS DEBUG - PORT: Port="+self.Domoticz_Setting_Serial_Port+", BaudRate="+self.Domoticz_Setting_Baudrate+", StopBits="+str(self.StopBits)+", ByteSize="+str(self.ByteSize)+" Parity="+self.Parity)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: Port="+self.Domoticz_Setting_Serial_Port+", BaudRate="+self.Domoticz_Setting_Baudrate+", StopBits="+str(self.StopBits)+", ByteSize="+str(self.ByteSize)+" Parity="+self.Parity)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
             client = ModbusSerialClient(method=self.Domoticz_Setting_Communication_Mode, port=self.Domoticz_Setting_Serial_Port, stopbits=self.StopBits, bytesize=self.ByteSize, parity=self.Parity, baudrate=int(self.Domoticz_Setting_Baudrate), timeout=1, retries=2)
@@ -320,7 +321,8 @@ class BasePlugin:
         # SET HARDWARE - pymodbus: RTU over TCP
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Port="+self.Domoticz_Setting_TCP_PORT+", Register="+self.Domoticz_Setting_Register_Number+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
+          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
             client = ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=5)
           except:
@@ -331,7 +333,8 @@ class BasePlugin:
         # SET HARDWARE - pymodbusTCP: TCP/IP
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Port="+self.Domoticz_Setting_TCP_PORT+", Unit ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
+          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
             client = ModbusClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), unit_id=int(self.Domoticz_Setting_Device_ID), auto_open=True, auto_close=True, timeout=5)
           except:
