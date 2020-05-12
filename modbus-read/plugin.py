@@ -36,11 +36,11 @@
         <param field="Mode1" label="Communication Mode" width="160px" required="true">
             <options>
                 <option label="RTU" value="rtu:rtu" default="true"/>
-				<option label="RTU (+DEBUG)" value="rtu:debug"/>
+                <option label="RTU (+DEBUG)" value="rtu:debug"/>
                 <option label="RTU ASCII" value="ascii:ascii"/>
-				<option label="RTU ASCII (+DEBUG)" value="ascii:debug"/>
+                <option label="RTU ASCII (+DEBUG)" value="ascii:debug"/>
                 <option label="RTU over TCP" value="rtutcp:rtutcp"/>
-				<option label="RTU over TCP (+DEBUG)" value="rtutcp:debug"/>
+                <option label="RTU over TCP (+DEBUG)" value="rtutcp:debug"/>
                 <option label="TCP/IP" value="tcpip:tcpip"/>
                 <option label="TCP/IP (+DEBUG)" value="tcpip:debug"/>
             </options>
@@ -189,7 +189,10 @@ class BasePlugin:
 
     def onStart(self):
         Domoticz.Log("onStart called")
-        Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded!, using python v" + sys.version[:6] + " and pymodbus v" + pymodbus.__version__)
+        try:
+          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!, using python v" + sys.version[:6] + " and pymodbus v" + pymodbus.__version__)
+        except:
+          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!")
 
         # Dependancies notification
         try:
@@ -197,13 +200,13 @@ class BasePlugin:
           if (float(sys.version[:1]) < 3): Domoticz.Error("WARNING: Python3 should be used!")	
           if (float(pymodbus.__version__[:3]) < float("2.3")): Domoticz.Error("WARNING: Pymodbus version is outdated, please update!")	
         except:
-          Domoticz.Error("WARNING: Dependancies could not be checked!")	
+          Domoticz.Error("WARNING: Dependancies could not be checked!")
 
         ########################################
         # READ-IN OPTIONS AND SETTINGS
         ########################################
         # Convert "option names" to variables for easy reading and debugging.
-        # Note: Parameters["Port"] cannot accept other value then int! (e.g. 192.192.0.0 will result in 192)
+        # Note: Parameters["Port"] cannot accept other value then int! (e.g. 192.168.0.0 will result in 192)
 
         Domoticz_Setting_Communication_MODDEB = Parameters["Mode1"].split(":") # Split MODE and DEBUG setting MODE:DEBUG
         self.Domoticz_Setting_Communication_Mode = Domoticz_Setting_Communication_MODDEB[0]
@@ -228,7 +231,7 @@ class BasePlugin:
         self.Domoticz_Setting_TCP_PORT = 0 # Default
         if len(self.Domoticz_Setting_TCP_IPPORT) > 1: self.Domoticz_Setting_TCP_PORT = self.Domoticz_Setting_TCP_IPPORT[1]
 
-	    # Set debug yes/no
+        # Set debug yes/no
         if (Domoticz_Setting_Communication_MODDEB[1] == "debug"):
           Domoticz.Debugging(1) # Enable debugging
           DumpConfigToLog()
@@ -255,7 +258,7 @@ class BasePlugin:
         if (self.Domoticz_Setting_Port_Mode == "S2B8PO"): self.StopBits, self.ByteSize, self.Parity = 2, 8, "O"
 
         # Read n registers depending on data type
-	    # Added additional options for byte/word swapping
+        # Added additional options for byte/word swapping
         self.Register_Count = 1 # Default
         if (self.Domoticz_Setting_Data_Type == "noco"): self.Register_Count = 1
         if (self.Domoticz_Setting_Data_Type == "bool"): self.Register_Count = 1
