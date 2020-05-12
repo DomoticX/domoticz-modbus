@@ -1,7 +1,9 @@
 ### Modbus Read/Write Plugins for Domoticz
 Author: Sebastiaan Ebeltjes / DomoticX.nl
 
-Succesfully Tested on Domoticz version: 2020.2
+Succesfully Tested on Domoticz version: 2020.2 stable
+
+You can update domoticz with command: ```cd /home/pi/domoticz | ./updaterelease```
 
 **Support for:**
 
@@ -68,7 +70,7 @@ Then restart domoticz with: ```sudo service domoticz.sh restart```
 -----
 ### Dependancies
 
-1. Raspbian image (FULL version recommended)
+1. RPi: Raspbian image (FULL version recommended)
 2. additional python3 libraries:
 
 **pymodbus AND pymodbusTCP**

@@ -1,6 +1,6 @@
-# Modbus RTU/ASCII/TCP - Universal READ Plugin for Domoticz
+# Modbus RTU / ASCII / TCP/IP - Universal READ Plugin for Domoticz
 #
-# Tested on domoticz 2020.2 with Python v3.7.3 and pymodbus v2.3.0
+# Tested on domoticz 2020.2 (stable) with Python v3.7.3 and pymodbus v2.3.0
 #
 # Author: Sebastiaan Ebeltjes / DomoticX.nl
 # RTU Serial HW: USB RS485-Serial Stick, like https://webshop.domoticx.nl/index.php?route=product/search&search=RS485%20RTU%20USB
@@ -11,20 +11,24 @@
 #
 
 """
-<plugin key="ModbusREAD" name="Modbus RTU/ASCII/TCP - READ v2020.2D" author="S. Ebeltjes / DomoticX.nl" version="2020.2D" externallink="" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusREAD" name="Modbus RTU / ASCII / TCP/IP - READ v2020.2E" author="S. Ebeltjes / DomoticX.nl" version="2020.2E" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
-        <h3>Modbus RTU/ASCII/TCP - READ</h3>
-        With this plugin you can readout RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
+        <h3>Modbus RTU / ASCII / TCP/IP - READ</h3>
+        With this plugin you can read from RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
         <br/>
-		<h3>Functions of the READ plugin:</h3>
-        Read Coil (Function 1)<br/>
-        Read Discrete Input (Function 2)<br/>
-        Read Holding Registers (Function 3)<br/>
-        Read Input Registers (Function 4)<br/>
+        <h4>RTU</h4>
+        The serial binary communication protocol. It is the communication standard that<br/>
+        became widely used and all series of PLC's and other device producers support it.<br/>
+        It goes about the network protocol of the 1Master x nSlave type. The Slave devices can be 254 at the most.<br/>
+        <h4>ASCII</h4>
+        This protocol is similar to Modbus RTU, but the binary content is transformed to common ASCII characters.<br/>
+        It is not used as frequently as Modbus RTU.<br/>
+        <h4>RTU over TCP</h4> 
+        Means a MODBUS RTU packet wrapped in a TCP packet. The message bytes are modified to add the 6 byte MBAP header and remove the two byte CRC.
+        <h4>TCP/IP</h4>
+        It is a network protocol - classic Ethernet TCP/IP with the 10/100 Mbit/s speed rate, a standard net HW Ethernet card is sufficient.<br/>
+        The communication principle (1Master x nSlave) is the same as for Modbus RTU.<br/>
         <br/>
-        <h3>Supported data types:</h3>
-        No conversion (passtrough) / BOOL / INT / UINT / FLOAT / STRING<br/>
-		<br/>
         <h3>Set-up and Configuration:</h3>
         See wiki link above.<br/> 
     </description>
@@ -33,8 +37,8 @@
             <options>
                 <option label="RTU" value="rtu:rtu" default="true"/>
 				<option label="RTU (+DEBUG)" value="rtu:debug"/>
-                <option label="ASCII" value="ascii:ascii"/>
-				<option label="ASCII (+DEBUG)" value="ascii:debug"/>
+                <option label="RTU ASCII" value="ascii:ascii"/>
+				<option label="RTU ASCII (+DEBUG)" value="ascii:debug"/>
                 <option label="RTU over TCP" value="rtutcp:rtutcp"/>
 				<option label="RTU over TCP (+DEBUG)" value="rtutcp:debug"/>
                 <option label="TCP/IP" value="tcpip:tcpip"/>
@@ -71,14 +75,14 @@
                 <option label="115200" value="115200"/>
             </options>
         </param>
-        <param field="Address" label="TCP - IP:Port" width="140px" default="192.168.2.1:501"/>
+        <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:501"/>
         <param field="Password" label="Device ID:Pollingrate(sec)" width="50px" default="1:10" required="true"/>
         <param field="Username" label="Modbus Function" width="250px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
                 <option label="Read Discrete Input (Function 2)" value="2"/>
-                <option label="Read Holding Registers (Function 3)" value="3"/>
-                <option label="Read Input Registers (Function 4)" value="4" default="true"/>
+                <option label="Read Holding Registers (Function 3)" value="3" default="true"/>
+                <option label="Read Input Registers (Function 4)" value="4"/>
             </options>
         </param>
         <param field="Port" label="Register number" width="50px" default="1" required="true"/>
@@ -188,9 +192,12 @@ class BasePlugin:
         Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded!, using python v" + sys.version[:6] + " and pymodbus v" + pymodbus.__version__)
 
         # Dependancies notification
-        if (float(Parameters["DomoticzVersion"]) < float("2020.2")): Domoticz.Error("WARNING: Domoticz version is outdated/not supported, please update!")
-        if (float(sys.version[:1]) < 3): Domoticz.Error("WARNING: Python3 should be used!")	
-        if (float(pymodbus.__version__[:3]) < float("2.3")): Domoticz.Error("WARNING: Pymodbus version is outdated, please update!")	
+        try:
+          if (float(Parameters["DomoticzVersion"][:6]) < float("2020.2")): Domoticz.Error("WARNING: Domoticz version is outdated/not supported, please update!")
+          if (float(sys.version[:1]) < 3): Domoticz.Error("WARNING: Python3 should be used!")	
+          if (float(pymodbus.__version__[:3]) < float("2.3")): Domoticz.Error("WARNING: Pymodbus version is outdated, please update!")	
+        except:
+          Domoticz.Error("WARNING: Dependancies could not be checked!")	
 
         ########################################
         # READ-IN OPTIONS AND SETTINGS
@@ -312,7 +319,7 @@ class BasePlugin:
           Domoticz.Debug("MODBUS DEBUG - INTERFACE: Port="+self.Domoticz_Setting_Serial_Port+", BaudRate="+self.Domoticz_Setting_Baudrate+", StopBits="+str(self.StopBits)+", ByteSize="+str(self.ByteSize)+" Parity="+self.Parity)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
-            client = ModbusSerialClient(method=self.Domoticz_Setting_Communication_Mode, port=self.Domoticz_Setting_Serial_Port, stopbits=self.StopBits, bytesize=self.ByteSize, parity=self.Parity, baudrate=int(self.Domoticz_Setting_Baudrate), timeout=1, retries=2)
+            client = ModbusSerialClient(method=self.Domoticz_Setting_Communication_Mode, port=self.Domoticz_Setting_Serial_Port, stopbits=self.StopBits, bytesize=self.ByteSize, parity=self.Parity, baudrate=int(self.Domoticz_Setting_Baudrate), timeout=2, retries=2)
           except:
             Domoticz.Error("Error opening Serial interface on "+self.Domoticz_Setting_Serial_Port)
             Devices[1].Update(1, "0") # Set value to 0 (error)
@@ -324,7 +331,7 @@ class BasePlugin:
           Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
-            client = ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=5)
+            client = ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=2)
           except:
             Domoticz.Error("Error opening RTU over TCP interface on address: "+self.Domoticz_Setting_TCP_IPPORT)
             Devices[1].Update(1, "0") # Set value to 0 (error)
@@ -336,7 +343,7 @@ class BasePlugin:
           Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
-            client = ModbusClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), unit_id=int(self.Domoticz_Setting_Device_ID), auto_open=True, auto_close=True, timeout=5)
+            client = ModbusClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), unit_id=int(self.Domoticz_Setting_Device_ID), auto_open=True, auto_close=True, timeout=2)
           except:
             Domoticz.Error("Error opening TCP/IP interface on address: "+self.Domoticz_Setting_TCP_IPPORT)
             Devices[1].Update(1, "0") # Set value to 0 (error)
