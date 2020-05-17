@@ -190,9 +190,9 @@ class BasePlugin:
     def onStart(self):
         Domoticz.Log("onStart called")
         try:
-          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!, using python v" + sys.version[:6] + " and pymodbus v" + pymodbus.__version__)
+          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded!, using python v" + sys.version[:6] + " and pymodbus v" + pymodbus.__version__)
         except:
-          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!")
+          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal READ loaded!")
 
         # Dependancies notification
         try:
