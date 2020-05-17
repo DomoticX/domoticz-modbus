@@ -11,7 +11,7 @@
 #
 
 """
-<plugin key="ModbusREAD" name="Modbus RTU / ASCII / TCP/IP - READ v2020.2E" author="S. Ebeltjes / DomoticX.nl" version="2020.2E" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusREAD" name="Modbus RTU / ASCII / TCP/IP - READ v2020.2F" author="S. Ebeltjes / DomoticX.nl" version="2020.2F" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - READ</h3>
         With this plugin you can read from RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -27,7 +27,7 @@
         Means a MODBUS RTU packet wrapped in a TCP packet. The message bytes are modified to add the 6 byte MBAP header and remove the two byte CRC.
         <h4>TCP/IP</h4>
         It is a network protocol - classic Ethernet TCP/IP with the 10/100 Mbit/s speed rate, a standard net HW Ethernet card is sufficient.<br/>
-        The communication principle (1Master x nSlave) is the same as for Modbus RTU.<br/>
+        The communication principle (1Master x nSlave) is the same as for Modbus RTU. used port is most likely: 502<br/>
         <br/>
         <h3>Set-up and Configuration:</h3>
         See wiki link above.<br/> 
@@ -75,7 +75,7 @@
                 <option label="115200" value="115200"/>
             </options>
         </param>
-        <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:501"/>
+        <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:502"/>
         <param field="Password" label="Device ID:Pollingrate(sec)" width="50px" default="1:10" required="true"/>
         <param field="Username" label="Modbus Function" width="250px" required="true">
             <options>
@@ -331,7 +331,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbus: RTU over TCP
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
             client = ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=2)
@@ -343,7 +343,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbusTCP: TCP/IP
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Data type="+self.Domoticz_Setting_Data_Type+", Pollrate="+self.Domoticz_Setting_Device_Pollrate)
           try:
             client = ModbusClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), unit_id=int(self.Domoticz_Setting_Device_ID), auto_open=True, auto_close=True, timeout=2)
@@ -384,22 +384,49 @@ class BasePlugin:
 
 
         ########################################
-        # DECODE DATA
+        # DECODE DATA TYPE
+        ########################################
+        # pymodbus (RTU/ASCII/RTU over TCP) will reponse in ARRAY, no matter what values read e.g. MODBUS DEBUG RESPONSE: [2] = data.registers
+        # pymodbusTCP (TCP/IP) will give the value back e.g. MODBUS DEBUG RESPONSE: [61, 44] = data
+        if (self.Domoticz_Setting_Communication_Mode == "rtu" or self.Domoticz_Setting_Communication_Mode == "ascii" or self.Domoticz_Setting_Communication_Mode == "rtutcp"):
+          try:
+            Domoticz.Debug("MODBUS DEBUG - VALUE before conversion: " + str(data.registers[0]))
+            # Added option to swap bytes (little endian)
+            if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+            # Added option to swap words (little endian)
+            elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
+                  or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+            # Otherwise always big endian
+            else:
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+          except:
+            Domoticz.Error("Modbus error decoding or received no data (RTU/ASCII/RTU over TCP)!, check your settings!")
+            Devices[1].Update(1, "0") # Set value to 0 (error)
+
+        if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
+          try:
+            Domoticz.Debug("MODBUS DEBUG - VALUE before conversion: " + str(data))
+            #value = data[0]
+            # Added option to swap bytes (little endian)
+            if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Little, wordorder=Endian.Big)
+            # Added option to swap words (little endian)
+            elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
+                  or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Little)
+            # Otherwise always big endian
+            else:
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+          except:
+            Domoticz.Error("Modbus error decoding or received no data (TCP/IP)!, check your settings!")
+            Devices[1].Update(1, "0") # Set value to 0 (error)
+
+        ########################################
+        # DECODE DATA VALUE
         ########################################
         try:
-          # Added option to swap bytes (little endian)
-          if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
-            decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
-          # Added option to swap words (little endian)
-          elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
-                or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
-            decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
-          # Otherwise always big endian
-          else:
-            decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
-
-          Domoticz.Debug("MODBUS DEBUG - VALUE before conversion: " + str(data.registers[0]))
-		 
           if (self.Domoticz_Setting_Data_Type == "noco"): value = data.registers[0]
           if (self.Domoticz_Setting_Data_Type == "bool"): value = bool(data.registers[0])
           if (self.Domoticz_Setting_Data_Type == "int8LSB"):
@@ -429,21 +456,19 @@ class BasePlugin:
           if (self.Domoticz_Setting_Data_Type == "string2"): value = decoder.decode_string(2)
           if (self.Domoticz_Setting_Data_Type == "string4"): value = decoder.decode_string(4)
           if (self.Domoticz_Setting_Data_Type == "string6"): value = decoder.decode_string(6)
-          if (self.Domoticz_Setting_Data_Type == "string8"): value = decoder.decode_string(8)
-
-          # Divide the value (decimal)?
+          if (self.Domoticz_Setting_Data_Type == "string8"): value = decoder.decode_string(8)			
+          
+		  # Divide the value (decimal)
           if (self.Domoticz_Setting_Divide_Value == "div0"): value = str(value)
           if (self.Domoticz_Setting_Divide_Value == "div10"): value = str(round(value / 10, 1))
           if (self.Domoticz_Setting_Divide_Value == "div100"): value = str(round(value / 100, 2))
           if (self.Domoticz_Setting_Divide_Value == "div1000"): value = str(round(value / 1000, 3))
           if (self.Domoticz_Setting_Divide_Value == "div10000"): value = str(round(value / 10000, 4))
-
           Domoticz.Debug("MODBUS DEBUG - VALUE after conversion: " + str(value))
-
           Devices[1].Update(1, value) # Update value
 		  
         except:
-          Domoticz.Error("Modbus error decoding or received no data (TCP/IP)!, check your settings!")
+          Domoticz.Error("Modbus error decoding or received no data!, check your settings!")
           Devices[1].Update(1, "0") # Set value to 0 (error)
 
 global _plugin

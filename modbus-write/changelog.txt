@@ -1,3 +1,7 @@
+Modbus WRITE v2020.2D
+- Optimized: TCP/IP port debug logging
+- Optimized: set default TCP/IP port to 502
+
 Modbus WRITE v2020.2C
 - Fixed: Plugin not starting in unreleased beta versions (dependancies check)
 - Improved: option and plugin descriptions

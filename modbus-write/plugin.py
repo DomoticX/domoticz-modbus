@@ -11,7 +11,7 @@
 #
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2C" author="S. Ebeltjes / DomoticX.nl" version="2020.2C" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D" author="S. Ebeltjes / DomoticX.nl" version="2020.2D" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -27,7 +27,7 @@
         Means a MODBUS RTU packet wrapped in a TCP packet. The message bytes are modified to add the 6 byte MBAP header and remove the two byte CRC.
         <h4>TCP/IP</h4>
         It is a network protocol - classic Ethernet TCP/IP with the 10/100 Mbit/s speed rate, a standard net HW Ethernet card is sufficient.<br/>
-        The communication principle (1Master x nSlave) is the same as for Modbus RTU.<br/>
+        The communication principle (1Master x nSlave) is the same as for Modbus RTU. used port is most likely: 502<br/>
         <br/>
         <h3>Set-up and Configuration:</h3>
         See wiki link above.<br/> 
@@ -75,7 +75,7 @@
                 <option label="115200" value="115200"/>
             </options>
         </param>
-        <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:501"/>
+        <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:502"/>
         <param field="Password" label="Device ID" width="50px" default="1" required="true"/>
         <param field="Username" label="Modbus Function" width="280px" required="true">
              <options>
@@ -206,7 +206,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbus: RTU over TCP
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Payload="+payload)
           try:
             client = ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=2)
@@ -218,7 +218,7 @@ class BasePlugin:
         # SET HARDWARE - pymodbusTCP: TCP/IP
         ########################################
         if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP:Port="+self.Domoticz_Setting_TCP_IP+":"+self.Domoticz_Setting_TCP_PORT)
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
           Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function"+self.Domoticz_Setting_Modbus_Function+", Payload="+payload)
           try:
             client = ModbusClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), unit_id=int(self.Domoticz_Setting_Device_ID), auto_open=True, auto_close=True, timeout=2)
