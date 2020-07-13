@@ -116,13 +116,18 @@
                 <option label="STRING 8-byte" value="string8"/>
             </options>
         </param>
-        <param field="Mode5" label="Divide value" width="100px" required="true">
+        <param field="Mode5" label="Scale factor" width="180px" required="true">
             <options>
-                <option label="No" value="div0" default="true"/>
+                <option label="None" value="div0" default="true"/>
                 <option label="Divide /10" value="div10"/>
                 <option label="Divide /100" value="div100"/>
                 <option label="Divide /1000" value="div1000"/>
                 <option label="Divide /10000" value="div10000"/>
+                <option label="Multiply * 10" value="mul10"/>
+                <option label="Multiply * 100" value="mul100"/>
+                <option label="Multiply * 1000" value="mul1000"/>
+                <option label="Multiply * 10000" value="mull10000"/>
+                <option label="In next register" value="sfnextreg"/>
             </options>
         </param>
         <param field="Mode4" label="Sensor type" width="160px" required="true" value="Custom">
@@ -179,6 +184,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 # Declare internal variables
 result = ""
 value = 0
+sf_value = 0
 ignored = 0
 data = []
 
@@ -216,7 +222,7 @@ class BasePlugin:
         self.Domoticz_Setting_Modbus_Function = Parameters["Username"]
         self.Domoticz_Setting_Register_Number = Parameters["Port"]
         self.Domoticz_Setting_Data_Type = Parameters["Mode6"]
-        self.Domoticz_Setting_Divide_Value = Parameters["Mode5"]
+        self.Domoticz_Setting_Scale_Factor = Parameters["Mode5"]
         self.Domoticz_Setting_Sensor_Type = Parameters["Mode4"]
 
         self.Domoticz_Setting_Device_IDPOL = Parameters["Password"].split(":") # Split ID and pollrate setting ID:POLL (heartbeat)
@@ -286,6 +292,11 @@ class BasePlugin:
         if (self.Domoticz_Setting_Data_Type == "string4"): self.Register_Count = 4
         if (self.Domoticz_Setting_Data_Type == "string6"): self.Register_Count = 6
         if (self.Domoticz_Setting_Data_Type == "string8"): self.Register_Count = 8
+        
+        self.Read_Scale_Factor = 0
+        if (self.Domoticz_Setting_Scale_Factor == "sfnextreg"):
+          self.Read_Scale_Factor = 1
+          self.Register_Count = self.Register_Count + 1
 		
         # Due to the lack of more parameter posibility, the name will be the hardware name
         self.Domoticz_Setting_Sensor_Type = Parameters["Mode4"]
@@ -361,6 +372,13 @@ class BasePlugin:
             if (self.Domoticz_Setting_Modbus_Function == "2"): data = client.read_discrete_inputs(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
             if (self.Domoticz_Setting_Modbus_Function == "3"): data = client.read_holding_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
             if (self.Domoticz_Setting_Modbus_Function == "4"): data = client.read_input_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
+            if (self.Read_Scale_Factor == 1):
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder.skip_bytes((self.Register_Count - 1) * 2)
+              sf_value = decoder.decode_16bit_int()
+              data = data[0:self.Register_Count - 1]
+            else:
+              sf_value = 0
             Domoticz.Debug("MODBUS DEBUG - RESPONSE: " + str(data))
           except:
             Domoticz.Error("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
@@ -377,6 +395,13 @@ class BasePlugin:
             if (self.Domoticz_Setting_Modbus_Function == "2"): data = client.read_discrete_inputs(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
             if (self.Domoticz_Setting_Modbus_Function == "3"): data = client.read_holding_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
             if (self.Domoticz_Setting_Modbus_Function == "4"): data = client.read_input_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
+            if (self.Read_Scale_Factor == 1):
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder.skip_bytes((self.Register_Count - 1) * 2)
+              sf_value = decoder.decode_16bit_int()
+              data = data[0:self.Register_Count - 1]
+            else:
+              sf_value = 0
             Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
           except:
             Domoticz.Error("Modbus error communicating! (TCP/IP), check your settings!")
@@ -458,12 +483,22 @@ class BasePlugin:
           if (self.Domoticz_Setting_Data_Type == "string6"): value = decoder.decode_string(6)
           if (self.Domoticz_Setting_Data_Type == "string8"): value = decoder.decode_string(8)			
           
-		  # Divide the value (decimal)
-          if (self.Domoticz_Setting_Divide_Value == "div0"): value = str(value)
-          if (self.Domoticz_Setting_Divide_Value == "div10"): value = str(round(value / 10, 1))
-          if (self.Domoticz_Setting_Divide_Value == "div100"): value = str(round(value / 100, 2))
-          if (self.Domoticz_Setting_Divide_Value == "div1000"): value = str(round(value / 1000, 3))
-          if (self.Domoticz_Setting_Divide_Value == "div10000"): value = str(round(value / 10000, 4))
+		  # Apply a scale factor (decimal)
+          if (self.Domoticz_Setting_Scale_Factor == "div0"): value = str(value)
+          if (self.Domoticz_Setting_Scale_Factor == "div10"): value = str(round(value / 10, 1))
+          if (self.Domoticz_Setting_Scale_Factor == "div100"): value = str(round(value / 100, 2))
+          if (self.Domoticz_Setting_Scale_Factor == "div1000"): value = str(round(value / 1000, 3))
+          if (self.Domoticz_Setting_Scale_Factor == "div10000"): value = str(round(value / 10000, 4))
+          if (self.Domoticz_Setting_Scale_Factor == "mul10"): value = str(value * 10)
+          if (self.Domoticz_Setting_Scale_Factor == "mul100"): value = str(value * 100, 2)
+          if (self.Domoticz_Setting_Scale_Factor == "mul1000"): value = str(value * 1000, 3)
+          if (self.Domoticz_Setting_Scale_Factor == "mul10000"): value = str(value * 10000, 4)
+          if (self.Domoticz_Setting_Scale_Factor == "sfnextreg"):
+            if (sf_value == 0): value = str(value)
+            if (sf_value == 1): value = str(round(value * 10, 1))
+            if (sf_value == 2): value = str(round(value * 100, 1))
+            if (sf_value == -1): value = str(round(value / 10, 1))
+            if (sf_value == -2): value = str(round(value / 100, 1))
           Domoticz.Debug("MODBUS DEBUG - VALUE after conversion: " + str(value))
           Devices[1].Update(1, value) # Update value
 		  
