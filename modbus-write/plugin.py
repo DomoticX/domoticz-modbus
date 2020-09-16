@@ -9,9 +9,13 @@
 # - pymodbus AND pymodbusTCP:
 #   - Install for python3 with: sudo pip3 install -U pymodbus pymodbusTCP
 #
+# Correction partie WRITE PAYLOAD - pymodbus: RTU / ASCII / RTU over TCP
+# remplacer chaque premier int(self.Domoticz_Setting_Device_ID) par int(self.Domoticz_Setting_Register_Number)
+# voir https://github.com/DomoticX/domoticz-modbus/issues/28
+
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D" author="S. Ebeltjes / DomoticX.nl" version="2020.2D" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D.a" author="S. Ebeltjes / DomoticX.nl corrigée par m-ur" version="2020.2D.a" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -232,10 +236,10 @@ class BasePlugin:
         if (self.Domoticz_Setting_Communication_Mode == "rtu" or self.Domoticz_Setting_Communication_Mode == "ascii" or self.Domoticz_Setting_Communication_Mode == "rtutcp"):
           try:
             # Function to execute
-            if (self.Domoticz_Setting_Modbus_Function == "5"): result = client.write_coil(int(self.Domoticz_Setting_Device_ID), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
-            if (self.Domoticz_Setting_Modbus_Function == "6"): result = client.write_register(int(self.Domoticz_Setting_Device_ID), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
-            if (self.Domoticz_Setting_Modbus_Function == "15"): result = client.write_coils(int(self.Domoticz_Setting_Device_ID), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
-            if (self.Domoticz_Setting_Modbus_Function == "16"): result = client.write_registers(int(self.Domoticz_Setting_Device_ID), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
+            if (self.Domoticz_Setting_Modbus_Function == "5"): result = client.write_coil(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
+            if (self.Domoticz_Setting_Modbus_Function == "6"): result = client.write_register(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
+            if (self.Domoticz_Setting_Modbus_Function == "15"): result = client.write_coils(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
+            if (self.Domoticz_Setting_Modbus_Function == "16"): result = client.write_registers(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
             client.close()
 
             Domoticz.Debug("MODBUS DEBUG - RESULT: " + str(result))
