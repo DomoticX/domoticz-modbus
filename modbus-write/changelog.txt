@@ -1,5 +1,5 @@
 Modbus WRITE v2020.2D.a 
-Corrigé manuellement suivant indications de m-ur (voir https://github.com/DomoticX/domoticz-modbus/issues/28)
+Corrigé suivant indications de m-ur (voir https://github.com/DomoticX/domoticz-modbus/issues/28)
 Correction partie WRITE PAYLOAD - pymodbus: RTU / ASCII / RTU over TCP
 - remplacer chaque premier int(self.Domoticz_Setting_Device_ID) par int(self.Domoticz_Setting_Register_Number)
 
