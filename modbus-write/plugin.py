@@ -15,7 +15,7 @@
 
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D.a" author="S. Ebeltjes / DomoticX.nl corrigée par m-ur" version="2020.2D.a" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D.b" author="S. Ebeltjes / DomoticX.nl corrigée par Vincent835" version="2020.2D.b" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -255,10 +255,10 @@ class BasePlugin:
         if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
           try:
             # Function to execute
-            if (self.Domoticz_Setting_Modbus_Function == "5"): result = client.write_single_coil(int(self.Domoticz_Setting_Device_ID), int(payload))
-            if (self.Domoticz_Setting_Modbus_Function == "6"): result = client.write_single_register(int(self.Domoticz_Setting_Device_ID), int(payload))
-            if (self.Domoticz_Setting_Modbus_Function == "15"): result = client.write_multiple_coils(int(self.Domoticz_Setting_Device_ID), [payload])     # TODO split up multiple bytes to proper array.
-            if (self.Domoticz_Setting_Modbus_Function == "16"): result = client.write_multiple_registers(int(self.Domoticz_Setting_Device_ID), [payload]) # TODO split up multiple bytes to proper array.
+            if (self.Domoticz_Setting_Modbus_Function == "5"): result = client.write_single_coil(int(self.Domoticz_Setting_Register_Number), int(payload))
+            if (self.Domoticz_Setting_Modbus_Function == "6"): result = client.write_single_register(int(self.Domoticz_Setting_Register_Number), int(payload))
+            if (self.Domoticz_Setting_Modbus_Function == "15"): result = client.write_multiple_coils(int(self.Domoticz_Setting_Register_Number), [payload])     # TODO split up multiple bytes to proper array.
+            if (self.Domoticz_Setting_Modbus_Function == "16"): result = client.write_multiple_registers(int(self.Domoticz_Setting_Register_Number), [payload]) # TODO split up multiple bytes to proper array.
             client.close()
 
             Domoticz.Debug("MODBUS DEBUG - RESULT: " + str(result))

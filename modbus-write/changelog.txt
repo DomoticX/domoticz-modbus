@@ -1,7 +1,14 @@
+Modbus WRITE v2020.2D.b 
+Modified as indicated by biwizit (https://github.com/DomoticX/domoticz-modbus/issues/28)
+Correction of 'SET PAYLOAD - pymodbusTCP: TCP/IP' section
+- Change  int(self.Domoticz_Setting_Device_ID) by int(self.Domoticz_Setting_Register_Number)
+I didn't test this correction.
+
+
 Modbus WRITE v2020.2D.a 
-Corrigé suivant indications de m-ur (voir https://github.com/DomoticX/domoticz-modbus/issues/28)
-Correction partie WRITE PAYLOAD - pymodbus: RTU / ASCII / RTU over TCP
-- remplacer chaque premier int(self.Domoticz_Setting_Device_ID) par int(self.Domoticz_Setting_Register_Number)
+Modified as indicated by m-ur (voir https://github.com/DomoticX/domoticz-modbus/issues/28)
+Correction of 'WRITE PAYLOAD - pymodbus: RTU / ASCII / RTU over TCP'
+- Change each first int(self.Domoticz_Setting_Device_ID) by int(self.Domoticz_Setting_Register_Number)
 
 Modbus WRITE v2020.2D
 - Optimized: TCP/IP port debug logging
