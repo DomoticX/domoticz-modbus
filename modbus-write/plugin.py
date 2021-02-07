@@ -11,7 +11,8 @@
 #
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2021.2" author="S. Ebeltjes / DomoticX.nl" version="2021.2" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D.b" author="S. Ebeltjes / DomoticX.nl corrigée par Vincent835" version="2020.2D.b" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+=======
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
