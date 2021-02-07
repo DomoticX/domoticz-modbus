@@ -9,13 +9,10 @@
 # - pymodbus AND pymodbusTCP:
 #   - Install for python3 with: sudo pip3 install -U pymodbus pymodbusTCP
 #
-# Correction partie WRITE PAYLOAD - pymodbus: RTU / ASCII / RTU over TCP
-# remplacer chaque premier int(self.Domoticz_Setting_Device_ID) par int(self.Domoticz_Setting_Register_Number)
-# voir https://github.com/DomoticX/domoticz-modbus/issues/28
-
 
 """
 <plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2020.2D.b" author="S. Ebeltjes / DomoticX.nl corrigée par Vincent835" version="2020.2D.b" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+=======
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
