@@ -11,7 +11,7 @@
 #
 
 """
-<plugin key="ModbusREAD" name="Modbus RTU / ASCII / TCP/IP - READ v2020.2F" author="S. Ebeltjes / DomoticX.nl" version="2020.2F" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusREAD" name="Modbus RTU / ASCII / TCP/IP - READ v2021.7" author="S. Ebeltjes / DomoticX.nl" version="2021.7" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - READ</h3>
         With this plugin you can read from RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -107,7 +107,7 @@
                 <option label="UINT 64-Bit" value="uint64"/>
                 <option label="UINT 64-Bit Swapped" value="uint64s"/>
                 <option label="FLOAT 32-Bit" value="float32"/>
-                <option label="FLOAT 32-Bit Swapped" value="float32"/>
+                <option label="FLOAT 32-Bit Swapped" value="float32s"/>
                 <option label="FLOAT 64-Bit" value="float64"/>
                 <option label="FLOAT 64-Bit Swapped" value="float64s"/>
                 <option label="STRING 2-byte" value="string2"/>
@@ -119,10 +119,10 @@
         <param field="Mode5" label="Scale factor" width="180px" required="true">
             <options>
                 <option label="None" value="div0" default="true"/>
-                <option label="Divide /10" value="div10"/>
-                <option label="Divide /100" value="div100"/>
-                <option label="Divide /1000" value="div1000"/>
-                <option label="Divide /10000" value="div10000"/>
+                <option label="Divide / 10" value="div10"/>
+                <option label="Divide / 100" value="div100"/>
+                <option label="Divide / 1000" value="div1000"/>
+                <option label="Divide / 10000" value="div10000"/>
                 <option label="Multiply * 10" value="mul10"/>
                 <option label="Multiply * 100" value="mul100"/>
                 <option label="Multiply * 1000" value="mul1000"/>

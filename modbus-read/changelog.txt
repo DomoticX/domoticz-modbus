@@ -1,4 +1,7 @@
-Modbus WRITE v2020.2F
+Modbus READ v2021.7
+- Fixed: Swapping will work for 32bit floats as well [drotos88]
+
+Modbus READ v2020.2F
 - Fixed: Bug pymodbusTCP (TCP/IP) python plugin conversion fixed
 - Optimized: TCP/IP port debug logging
 - Optimized: set default TCP/IP port to 502

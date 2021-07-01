@@ -11,7 +11,7 @@
 #
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2021.2" author="S. Ebeltjes / DomoticX.nl" version="2021.2" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2021.7" author="S. Ebeltjes / DomoticX.nl" version="2021.7" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -130,8 +130,8 @@ class BasePlugin:
         # Convert "option names" to variables for easy reading and debugging.
         # Note: Parameters["Port"] cannot accept other value then int! (e.g. 192.168.0.0 will result in 192)
 
-        Domoticz_Setting_Communication_MODDEB = Parameters["Mode1"].split(":") # Split MODE and DEBUG setting MODE:DEBUG
-        self.Domoticz_Setting_Communication_Mode = Domoticz_Setting_Communication_MODDEB[0]
+        Domoticz_Setting_Communication_MODE = Parameters["Mode1"].split(":") # Split MODE and DEBUG setting MODE:DEBUG
+        self.Domoticz_Setting_Communication_Mode = Domoticz_Setting_Communication_MODE[0]
         self.Domoticz_Setting_Serial_Port = Parameters["SerialPort"]
         self.Domoticz_Setting_Baudrate = Parameters["Mode2"]
         self.Domoticz_Setting_Port_Mode = Parameters["Mode3"]
@@ -148,7 +148,7 @@ class BasePlugin:
         if len(self.Domoticz_Setting_TCP_IPPORT) > 1: self.Domoticz_Setting_TCP_PORT = self.Domoticz_Setting_TCP_IPPORT[1]
 
         # Set debug yes/no
-        if (Domoticz_Setting_Communication_MODDEB[1] == "debug"):
+        if (Domoticz_Setting_Communication_MODE[1] == "debug"):
           Domoticz.Debugging(1) # Enable debugging
           DumpConfigToLog()
           Domoticz.Debug("***** NOTIFICATION: Debug enabled!")

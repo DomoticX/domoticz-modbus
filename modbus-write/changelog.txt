@@ -1,3 +1,6 @@
+Modbus WRITE v2021.7
+- Fixed typo in variable.
+
 Modbus WRITE v2021.2
 - Fixed register writes in write plugin (m-ur)
 
