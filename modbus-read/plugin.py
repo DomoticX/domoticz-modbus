@@ -490,9 +490,9 @@ class BasePlugin:
           if (self.Domoticz_Setting_Scale_Factor == "div1000"): value = str(round(value / 1000, 3))
           if (self.Domoticz_Setting_Scale_Factor == "div10000"): value = str(round(value / 10000, 4))
           if (self.Domoticz_Setting_Scale_Factor == "mul10"): value = str(value * 10)
-          if (self.Domoticz_Setting_Scale_Factor == "mul100"): value = str(value * 100, 2)
-          if (self.Domoticz_Setting_Scale_Factor == "mul1000"): value = str(value * 1000, 3)
-          if (self.Domoticz_Setting_Scale_Factor == "mul10000"): value = str(value * 10000, 4)
+          if (self.Domoticz_Setting_Scale_Factor == "mul100"): value = str(value * 100)
+          if (self.Domoticz_Setting_Scale_Factor == "mul1000"): value = str(value * 1000)
+          if (self.Domoticz_Setting_Scale_Factor == "mul10000"): value = str(value * 10000)
           if (self.Domoticz_Setting_Scale_Factor == "sfnextreg"):
             if (sf_value == 0): value = str(value)
             if (sf_value == 1): value = str(round(value * 10, 1))
