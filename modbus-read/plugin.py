@@ -76,7 +76,7 @@
             </options>
         </param>
         <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:502"/>
-        <param field="Password" label="Device ID:Pollingrate(sec)" width="50px" default="1:10" required="true"/>
+        <param field="Password" label="Device ID(decimal):Pollingrate(sec)" width="50px" default="1:10" required="true"/>
         <param field="Username" label="Modbus Function" width="250px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
@@ -85,7 +85,7 @@
                 <option label="Read Input Registers (Function 4)" value="4"/>
             </options>
         </param>
-        <param field="Port" label="Register number" width="50px" default="1" required="true"/>
+        <param field="Port" label="Register number(decimal)" width="50px" default="1" required="true"/>
         <param field="Mode6" label="Data type" width="180px" required="true">
             <options>
                 <option label="No conversion (1 register)" value="noco"/>
