@@ -85,9 +85,9 @@
                 <option label="Write Registers (Function 16)" value="16"/>
             </options>
         </param>
-        <param field="Port" label="Register number" width="50px" default="1" required="true"/>
-        <param field="Mode4" label="Payload ON" width="75px"/>
-        <param field="Mode5" label="Payload OFF" width="75px"/>
+        <param field="Port" label="Register number (decimal)" width="50px" default="1" required="true"/>
+        <param field="Mode4" label="Payload ON (decimal)" width="75px"/>
+        <param field="Mode5" label="Payload OFF (decimal)" width="75px"/>
     </params>
 </plugin>
 """
@@ -96,8 +96,8 @@ import Domoticz
 import sys
 import pymodbus
 
-from pymodbus.client.sync import ModbusSerialClient # RTU
-from pymodbus.client.sync import ModbusTcpClient    # RTU over TCP
+from pymodbus.client import ModbusSerialClient # RTU
+from pymodbus.client import ModbusTcpClient    # RTU over TCP
 from pymodbus.transaction import ModbusRtuFramer    # RTU over TCP
 from pyModbusTCP.client import ModbusClient         # TCP/IP
 from pymodbus.constants import Endian
