@@ -516,9 +516,9 @@ class BasePlugin:
 		  
         except:
           Domoticz.Error("Modbus error decoding or received no data!, check your settings!")
-            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
-              Domoticz.Log("Error reading value, still updating with '0' ")
-              Devices[1].Update(1, "0") # Set value to 0 (error)
+          if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+            Domoticz.Log("Error reading value, still updating with '0' ")
+            Devices[1].Update(1, "0") # Set value to 0 (error)
 
 global _plugin
 _plugin = BasePlugin()
