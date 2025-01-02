@@ -373,7 +373,7 @@ class BasePlugin:
             if (self.Domoticz_Setting_Modbus_Function == "3"): data = client.read_holding_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
             if (self.Domoticz_Setting_Modbus_Function == "4"): data = client.read_input_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
             if (self.Read_Scale_Factor == 1):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
               decoder.skip_bytes((self.Register_Count - 1) * 2)
               sf_value = decoder.decode_16bit_int()
               data = data[0:self.Register_Count - 1]
@@ -396,7 +396,7 @@ class BasePlugin:
             if (self.Domoticz_Setting_Modbus_Function == "3"): data = client.read_holding_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
             if (self.Domoticz_Setting_Modbus_Function == "4"): data = client.read_input_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
             if (self.Read_Scale_Factor == 1):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
               decoder.skip_bytes((self.Register_Count - 1) * 2)
               sf_value = decoder.decode_16bit_int()
               data = data[0:self.Register_Count - 1]
@@ -418,14 +418,14 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG - VALUE before conversion: " + str(data.registers[0]))
             # Added option to swap bytes (little endian)
             if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.LITTLE, wordorder=Endian.BIG)
             # Added option to swap words (little endian)
             elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
                   or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
           except:
             Domoticz.Error("Modbus error decoding or received no data (RTU/ASCII/RTU over TCP)!, check your settings!")
             Devices[1].Update(1, "0") # Set value to 0 (error)
@@ -436,14 +436,14 @@ class BasePlugin:
             #value = data[0]
             # Added option to swap bytes (little endian)
             if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.LITTLE, wordorder=Endian.BIG)
             # Added option to swap words (little endian)
             elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
                   or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
           except:
             Domoticz.Error("Modbus error decoding or received no data (TCP/IP)!, check your settings!")
             Devices[1].Update(1, "0") # Set value to 0 (error)
