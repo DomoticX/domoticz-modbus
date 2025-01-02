@@ -1,6 +1,6 @@
 # Modbus RTU / ASCII / TCP/IP - Universal READ Plugin for Domoticz
 #
-# Tested on domoticz 2020.2 (stable) with Python v3.7.3 and pymodbus v2.3.0
+# Tested on domoticz 2024.7 (stable) with Python v3.11.2 and pymodbus v3.6.9
 #
 # Author: Sebastiaan Ebeltjes / DomoticX.nl
 # RTU Serial HW: USB RS485-Serial Stick, like https://webshop.domoticx.nl/index.php?route=product/search&search=RS485%20RTU%20USB
