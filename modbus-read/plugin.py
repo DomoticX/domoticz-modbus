@@ -227,7 +227,7 @@ class BasePlugin:
 
 # Currently in domoticz there is no way to add more parameters than Mode1 to Mode6, thus you need to modify this setting manually here.
 # Default value as 'Yes' is backward compatible with original plugin behavior
-        self.Domoticz_Setting_Update_When_Error = "Yes"
+        self.Domoticz_Setting_Update_When_Error = "No"
 
         self.Domoticz_Setting_Device_IDPOL = Parameters["Password"].split(":") # Split ID and pollrate setting ID:POLL (heartbeat)
         self.Domoticz_Setting_Device_ID = 1 # Default
