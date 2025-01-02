@@ -225,6 +225,10 @@ class BasePlugin:
         self.Domoticz_Setting_Scale_Factor = Parameters["Mode5"]
         self.Domoticz_Setting_Sensor_Type = Parameters["Mode4"]
 
+# Currently in domoticz there is no way to add more parameters than Mode1 to Mode6, thus you need to modify this setting manually here.
+# Default value as 'Yes' is backward compatible with original plugin behavior
+        self.Domoticz_Setting_Update_When_Error = "Yes"
+
         self.Domoticz_Setting_Device_IDPOL = Parameters["Password"].split(":") # Split ID and pollrate setting ID:POLL (heartbeat)
         self.Domoticz_Setting_Device_ID = 1 # Default
         if len(self.Domoticz_Setting_Device_IDPOL) > 0: self.Domoticz_Setting_Device_ID = self.Domoticz_Setting_Device_IDPOL[0]
@@ -382,7 +386,9 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG - RESPONSE: " + str(data))
           except:
             Domoticz.Error("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
 
         ########################################
@@ -405,7 +411,9 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
           except:
             Domoticz.Error("Modbus error communicating! (TCP/IP), check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
 
         ########################################
@@ -428,7 +436,9 @@ class BasePlugin:
               decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
           except:
             Domoticz.Error("Modbus error decoding or received no data (RTU/ASCII/RTU over TCP)!, check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
         if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
           try:
@@ -446,7 +456,9 @@ class BasePlugin:
               decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
           except:
             Domoticz.Error("Modbus error decoding or received no data (TCP/IP)!, check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
         ########################################
         # DECODE DATA VALUE
@@ -504,7 +516,9 @@ class BasePlugin:
 		  
         except:
           Domoticz.Error("Modbus error decoding or received no data!, check your settings!")
-          Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
 global _plugin
 _plugin = BasePlugin()
