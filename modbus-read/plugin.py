@@ -1,6 +1,6 @@
 # Modbus RTU / ASCII / TCP/IP - Universal READ Plugin for Domoticz
 #
-# Tested on domoticz 2020.2 (stable) with Python v3.7.3 and pymodbus v2.3.0
+# Tested on domoticz 2024.7 (stable) with Python v3.11.2 and pymodbus v3.6.9
 #
 # Author: Sebastiaan Ebeltjes / DomoticX.nl
 # RTU Serial HW: USB RS485-Serial Stick, like https://webshop.domoticx.nl/index.php?route=product/search&search=RS485%20RTU%20USB
@@ -76,7 +76,7 @@
             </options>
         </param>
         <param field="Address" label="TCP/IP - IP:Port" width="140px" default="192.168.2.1:502"/>
-        <param field="Password" label="Device ID:Pollingrate(sec)" width="50px" default="1:10" required="true"/>
+        <param field="Password" label="Device ID(decimal):Pollingrate(sec)" width="50px" default="1:10" required="true"/>
         <param field="Username" label="Modbus Function" width="250px" required="true">
             <options>
                 <option label="Read Coil (Function 1)" value="1"/>
@@ -85,7 +85,7 @@
                 <option label="Read Input Registers (Function 4)" value="4"/>
             </options>
         </param>
-        <param field="Port" label="Register number" width="50px" default="1" required="true"/>
+        <param field="Port" label="Register number(decimal)" width="50px" default="1" required="true"/>
         <param field="Mode6" label="Data type" width="180px" required="true">
             <options>
                 <option label="No conversion (1 register)" value="noco"/>
@@ -174,8 +174,8 @@ import Domoticz
 import sys
 import pymodbus
 
-from pymodbus.client.sync import ModbusSerialClient # RTU
-from pymodbus.client.sync import ModbusTcpClient    # RTU over TCP
+from pymodbus.client import ModbusSerialClient # RTU
+from pymodbus.client import ModbusTcpClient    # RTU over TCP
 from pymodbus.transaction import ModbusRtuFramer    # RTU over TCP
 from pyModbusTCP.client import ModbusClient         # TCP/IP
 from pymodbus.constants import Endian
@@ -224,6 +224,10 @@ class BasePlugin:
         self.Domoticz_Setting_Data_Type = Parameters["Mode6"]
         self.Domoticz_Setting_Scale_Factor = Parameters["Mode5"]
         self.Domoticz_Setting_Sensor_Type = Parameters["Mode4"]
+
+# Currently in domoticz there is no way to add more parameters than Mode1 to Mode6, thus you need to modify this setting manually here.
+# Default value as 'Yes' is backward compatible with original plugin behavior
+        self.Domoticz_Setting_Update_When_Error = "No"
 
         self.Domoticz_Setting_Device_IDPOL = Parameters["Password"].split(":") # Split ID and pollrate setting ID:POLL (heartbeat)
         self.Domoticz_Setting_Device_ID = 1 # Default
@@ -373,7 +377,7 @@ class BasePlugin:
             if (self.Domoticz_Setting_Modbus_Function == "3"): data = client.read_holding_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
             if (self.Domoticz_Setting_Modbus_Function == "4"): data = client.read_input_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count, unit=int(self.Domoticz_Setting_Device_ID))
             if (self.Read_Scale_Factor == 1):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
               decoder.skip_bytes((self.Register_Count - 1) * 2)
               sf_value = decoder.decode_16bit_int()
               data = data[0:self.Register_Count - 1]
@@ -382,7 +386,9 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG - RESPONSE: " + str(data))
           except:
             Domoticz.Error("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
 
         ########################################
@@ -396,7 +402,7 @@ class BasePlugin:
             if (self.Domoticz_Setting_Modbus_Function == "3"): data = client.read_holding_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
             if (self.Domoticz_Setting_Modbus_Function == "4"): data = client.read_input_registers(int(self.Domoticz_Setting_Register_Number), self.Register_Count)
             if (self.Read_Scale_Factor == 1):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
               decoder.skip_bytes((self.Register_Count - 1) * 2)
               sf_value = decoder.decode_16bit_int()
               data = data[0:self.Register_Count - 1]
@@ -405,7 +411,9 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG RESPONSE: " + str(data))
           except:
             Domoticz.Error("Modbus error communicating! (TCP/IP), check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
 
         ########################################
@@ -418,17 +426,19 @@ class BasePlugin:
             Domoticz.Debug("MODBUS DEBUG - VALUE before conversion: " + str(data.registers[0]))
             # Added option to swap bytes (little endian)
             if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.LITTLE, wordorder=Endian.BIG)
             # Added option to swap words (little endian)
             elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
                   or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
           except:
             Domoticz.Error("Modbus error decoding or received no data (RTU/ASCII/RTU over TCP)!, check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
         if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
           try:
@@ -436,17 +446,19 @@ class BasePlugin:
             #value = data[0]
             # Added option to swap bytes (little endian)
             if (self.Domoticz_Setting_Data_Type == "int16s" or self.Domoticz_Setting_Data_Type == "uint16s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Little, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.LITTLE, wordorder=Endian.BIG)
             # Added option to swap words (little endian)
             elif (self.Domoticz_Setting_Data_Type == "int32s" or self.Domoticz_Setting_Data_Type == "uint32s" or self.Domoticz_Setting_Data_Type == "int64s" or self.Domoticz_Setting_Data_Type == "uint64s" 
                   or self.Domoticz_Setting_Data_Type == "float32s" or self.Domoticz_Setting_Data_Type == "float64s"):
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Little)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
             # Otherwise always big endian
             else:
-              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+              decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.BIG, wordorder=Endian.BIG)
           except:
             Domoticz.Error("Modbus error decoding or received no data (TCP/IP)!, check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+            if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+              Domoticz.Log("Error reading value, still updating with '0' ")
+              Devices[1].Update(1, "0") # Set value to 0 (error)
 
         ########################################
         # DECODE DATA VALUE
@@ -504,7 +516,9 @@ class BasePlugin:
 		  
         except:
           Domoticz.Error("Modbus error decoding or received no data!, check your settings!")
-          Devices[1].Update(1, "0") # Set value to 0 (error)
+          if (self.Domoticz_Setting_Update_When_Error == "Yes"):
+            Domoticz.Log("Error reading value, still updating with '0' ")
+            Devices[1].Update(1, "0") # Set value to 0 (error)
 
 global _plugin
 _plugin = BasePlugin()
