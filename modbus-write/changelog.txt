@@ -1,4 +1,16 @@
-Modbus WRITE v2021.7
+Modbus READ v2026.4
+- Plugin picks the right pymodbus API when it loads.
+- pymodbus 3.8 and newer: it uses the FramerType enum, which only exists from 3.8.
+-Older pymodbus (such as 3.6.9): it uses the framer classes (ModbusRtuFramer, ModbusAsciiFramer, ModbusSocketFramer) that the old version of the plugin used. For the serial client it also falls back to the old method="rtu" argument on very old releases.
+-Settings and manifest: the settings screen is the same, so existing hardware entries keep working. The version warning now only triggers below pymodbus 3.0.
+-the 3.8 API, pymodbus for TCP/IP (so pyModbusTCP isn’t needed). 
+
+- removed the unused BinaryPayloadDecoder and Endian imports. The settings screen is unchanged, so existing hardware entries keep working.
+- Things that behave differently from the old script:
+- Failed writes: the old plugin never checked the device’s reply and switched to ON anyway. Now a rejected or missing reply is logged as an error. By default the switch is then set to value 0, as before.   - There’s a setting near the top of onStart, Domoticz_Setting_Update_When_Error, which you can change to "No" to leave the switch alone on errors.
+- Slider and level commands: these crashed in the serial modes and now work. They send the level value and, as before, don’t change the switch state.
+- Functions 15 and 16: these sent a bare number where pymodbus needs a list. They now send a one-item list. The old “split multiple values” TODO is still open.
+- I kept one oddity so no existing value changes meaning. In RTU, ASCII and RTU-over-TCP modes the payload is read as hexadecimal, while TCP/IP mode reads it as decimal, even though the labels say “decimal”. Values 0 to 9 are the same either way, but a payload of 10 is 16 over RTU and 10 over TCP/IP. The PAYLOAD_BASE table near the top of the file controls this. Set the RTU entries to 10 if you want decimal everywhere, but only do that if your stored payloads are decimal.Modbus WRITE v2021.7
 - Fixed typo in variable.
 
 Modbus WRITE v2021.2
