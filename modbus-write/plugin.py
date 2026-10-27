@@ -1,17 +1,31 @@
-# Modbus RTU / ASCII / TCP/IP - Universal READ Plugin for Domoticz
+# Modbus RTU / ASCII / TCP/IP - Universal WRITE Plugin for Domoticz
 #
-# Tested on domoticz 2024.7 (stable) with Python v3.11.2 and pymodbus v3.6.9
-#
-# Author: Sebastiaan Ebeltjes / DomoticX.nl
+# Original author: Sebastiaan Ebeltjes / DomoticX.nl
 # RTU Serial HW: USB RS485-Serial Stick, like https://webshop.domoticx.nl/index.php?route=product/search&search=RS485%20RTU%20USB
 #
+# Works with both:
+# - Domoticz 2024.7 (stable), Python 3.11.2 and pymodbus 3.6.9 (the previous version of this plugin)
+# - Domoticz 2026.4, Python 3.13.5 and pymodbus 3.8.6
+# The right pymodbus API (framer classes <= 3.7, FramerType enum >= 3.8) is selected automatically.
+#
+# Changes compared to the 2021.7 version of this plugin:
+# - pymodbus 3.8 API support: FramerType, slave= instead of unit=, explicit connect()/close(),
+#   no more removed constructor arguments (auto_open/auto_close)
+# - TCP/IP mode now uses pymodbus too, so pyModbusTCP is no longer needed
+# - the deprecated BinaryPayloadDecoder / Endian imports were removed (they were not used)
+# - the response of the device is checked: a failed write is reported instead of switching the device
+# - slider/level commands no longer crash, functions 15/16 now send a proper list of values
+# - connection errors now say why the connection failed
+#
 # Dependancies:
-# - pymodbus AND pymodbusTCP:
-#   - Install for python3 with: sudo pip3 install -U pymodbus pymodbusTCP
+# - pymodbus:
+#   - Install for python3 with: sudo pip3 install -U pymodbus   (3.6.9 up to 3.8.x are supported)
+#     (use a virtual environment or --break-system-packages if your distro blocks pip)
+# - pyModbusTCP is NOT needed anymore
 #
 
 """
-<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2021.7" author="S. Ebeltjes / DomoticX.nl" version="2021.7" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
+<plugin key="ModbusWRITE" name="Modbus RTU / ASCII / TCP/IP - WRITE v2026.4" author="S. Ebeltjes / DomoticX.nl" version="2026.4" externallink="http://domoticx.nl" wikilink="https://github.com/DomoticX/domoticz-modbus">
     <description>
         <h3>Modbus RTU / ASCII / TCP/IP - WRITE</h3>
         With this plugin you can write to RS485 Modbus devices with methods RTU/ASCII/TCP<br/>
@@ -23,14 +37,14 @@
         <h4>ASCII</h4>
         This protocol is similar to Modbus RTU, but the binary content is transformed to common ASCII characters.<br/>
         It is not used as frequently as Modbus RTU.<br/>
-        <h4>RTU over TCP</h4> 
+        <h4>RTU over TCP</h4>
         Means a MODBUS RTU packet wrapped in a TCP packet. The message bytes are modified to add the 6 byte MBAP header and remove the two byte CRC.
         <h4>TCP/IP</h4>
         It is a network protocol - classic Ethernet TCP/IP with the 10/100 Mbit/s speed rate, a standard net HW Ethernet card is sufficient.<br/>
         The communication principle (1Master x nSlave) is the same as for Modbus RTU. used port is most likely: 502<br/>
         <br/>
         <h3>Set-up and Configuration:</h3>
-        See wiki link above.<br/> 
+        See wiki link above.<br/>
     </description>
     <params>
         <param field="Mode1" label="Communication Mode" width="160px" required="true">
@@ -93,16 +107,70 @@
 """
 
 import Domoticz
+import os
 import sys
+import socket
+import inspect
 import pymodbus
 
-from pymodbus.client import ModbusSerialClient # RTU
-from pymodbus.client import ModbusTcpClient    # RTU over TCP
-from pymodbus.transaction import ModbusRtuFramer    # RTU over TCP
-from pyModbusTCP.client import ModbusClient         # TCP/IP
-from pymodbus.constants import Endian
-from pymodbus.payload import BinaryPayloadDecoder
-result=""
+from pymodbus.client import ModbusSerialClient # RTU / ASCII
+from pymodbus.client import ModbusTcpClient    # RTU over TCP / TCP/IP
+
+# Framers: pymodbus >= 3.8 uses the FramerType enum, older versions (e.g. 3.6.9) use framer classes.
+try:
+    from pymodbus import FramerType            # pymodbus >= 3.8
+    FRAMERS = {"rtu": FramerType.RTU, "ascii": FramerType.ASCII, "socket": FramerType.SOCKET}
+except ImportError:
+    try:
+        from pymodbus.framer import ModbusRtuFramer, ModbusAsciiFramer, ModbusSocketFramer
+    except ImportError:
+        from pymodbus.transaction import ModbusRtuFramer, ModbusAsciiFramer, ModbusSocketFramer
+    FRAMERS = {"rtu": ModbusRtuFramer, "ascii": ModbusAsciiFramer, "socket": ModbusSocketFramer}
+
+# Number base of the "Payload ON/OFF" fields, per communication mode.
+# This is the behaviour of the 2021.7 plugin, kept so existing setups keep writing the same values:
+# RTU / ASCII / RTU over TCP read the payload as HEXADECIMAL, TCP/IP reads it as DECIMAL.
+# (The labels in the settings screen say "decimal": set the first three to 10 if you want that everywhere.
+#  Values 0-9 are identical in both bases.)
+PAYLOAD_BASE = {"rtu": 16, "ascii": 16, "rtutcp": 16, "tcpip": 10}
+
+
+def version_tuple(text):
+    """'3.8.6' -> (3, 8, 6); stops at the first non-numeric part (e.g. '3.8.6.dev1')."""
+    parts = []
+    for part in str(text).split("."):
+        digits = ""
+        for ch in part:
+            if not ch.isdigit():
+                break
+            digits += ch
+        if digits == "":
+            break
+        parts.append(int(digits))
+    return tuple(parts)
+
+
+def parse_payload(payload, base):
+    """The payload is a string from the settings (ON/OFF) or an int (slider level)."""
+    if isinstance(payload, str):
+        text = payload.strip()
+        if text == "":
+            raise ValueError("payload is empty, fill in the Payload ON/OFF settings")
+        return int(text, base)
+    return int(payload)
+
+
+def unit_kwargs(method, device_id):
+    """pymodbus 3.x: unit= was replaced by slave= (named device_id in the newest releases)."""
+    try:
+        params = inspect.signature(method).parameters
+        for name in ("device_id", "slave", "unit"):
+            if name in params:
+                return {name: device_id}
+    except Exception:
+        pass
+    return {"slave": device_id}
+
 
 class BasePlugin:
     enabled = False
@@ -112,15 +180,15 @@ class BasePlugin:
     def onStart(self):
         Domoticz.Log("onStart called")
         try:
-          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!, using python v" + sys.version[:6] + " and pymodbus v" + pymodbus.__version__)
+          Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!, using python v" + sys.version.split()[0] + " and pymodbus v" + pymodbus.__version__)
         except:
           Domoticz.Log("Modbus RTU/ASCII/TCP - Universal WRITE loaded!")
 
         # Dependancies notification
         try:
-          if (float(Parameters["DomoticzVersion"][:6]) < float("2020.2")): Domoticz.Error("WARNING: Domoticz version is outdated/not supported, please update!")
-          if (float(sys.version[:1]) < 3): Domoticz.Error("WARNING: Python3 should be used!")	
-          if (float(pymodbus.__version__[:3]) < float("2.3")): Domoticz.Error("WARNING: Pymodbus version is outdated, please update!")	
+          if (version_tuple(Parameters["DomoticzVersion"]) < (2020, 2)): Domoticz.Error("WARNING: Domoticz version is outdated/not supported, please update!")
+          if (sys.version_info[0] < 3): Domoticz.Error("WARNING: Python3 should be used!")
+          if (version_tuple(pymodbus.__version__) < (3, 0)): Domoticz.Error("WARNING: Pymodbus version is outdated (3.0 or newer is needed), please update!")
         except:
           Domoticz.Error("WARNING: Dependancies could not be checked!")
 
@@ -141,33 +209,30 @@ class BasePlugin:
         self.Domoticz_Setting_Payload_OFF = Parameters["Mode5"]
         self.Domoticz_Setting_Device_ID = Parameters["Password"]
 
+        # Currently in domoticz there is no way to add more parameters than Mode1 to Mode6, thus you need to modify this setting manually here.
+        # "Yes" (same as the 2021.7 plugin): on a communication error the device is updated with '0'.
+        # "No": on a communication error the device keeps its current state.
+        self.Domoticz_Setting_Update_When_Error = "Yes"
+
         self.Domoticz_Setting_TCP_IPPORT = Parameters["Address"].split(":") # Split address and port setting TCP:IP
-        self.Domoticz_Setting_TCP_IP = 0 # Default
+        self.Domoticz_Setting_TCP_IP = "0" # Default
         if len(self.Domoticz_Setting_TCP_IPPORT) > 0: self.Domoticz_Setting_TCP_IP = self.Domoticz_Setting_TCP_IPPORT[0]
-        self.Domoticz_Setting_TCP_PORT = 0 # Default
+        self.Domoticz_Setting_TCP_PORT = "502" # Default
         if len(self.Domoticz_Setting_TCP_IPPORT) > 1: self.Domoticz_Setting_TCP_PORT = self.Domoticz_Setting_TCP_IPPORT[1]
 
         # Set debug yes/no
-        if (Domoticz_Setting_Communication_MODE[1] == "debug"):
+        if (len(Domoticz_Setting_Communication_MODE) > 1 and Domoticz_Setting_Communication_MODE[1] == "debug"):
           Domoticz.Debugging(1) # Enable debugging
           DumpConfigToLog()
           Domoticz.Debug("***** NOTIFICATION: Debug enabled!")
         else:
           Domoticz.Debugging(0) # Disable debugging
 
-        # RTU - Serial port settings
-        if (self.Domoticz_Setting_Port_Mode == "S1B7PN"): self.StopBits, self.ByteSize, self.Parity = 1, 7, "N"
-        if (self.Domoticz_Setting_Port_Mode == "S1B7PE"): self.StopBits, self.ByteSize, self.Parity = 1, 7, "E"
-        if (self.Domoticz_Setting_Port_Mode == "S1B7PO"): self.StopBits, self.ByteSize, self.Parity = 1, 7, "O"
-        if (self.Domoticz_Setting_Port_Mode == "S1B8PN"): self.StopBits, self.ByteSize, self.Parity = 1, 8, "N"
-        if (self.Domoticz_Setting_Port_Mode == "S1B8PE"): self.StopBits, self.ByteSize, self.Parity = 1, 8, "E"
-        if (self.Domoticz_Setting_Port_Mode == "S1B8PO"): self.StopBits, self.ByteSize, self.Parity = 1, 8, "O"
-        if (self.Domoticz_Setting_Port_Mode == "S2B7PN"): self.StopBits, self.ByteSize, self.Parity = 2, 7, "N"
-        if (self.Domoticz_Setting_Port_Mode == "S2B7PE"): self.StopBits, self.ByteSize, self.Parity = 2, 7, "E"
-        if (self.Domoticz_Setting_Port_Mode == "S2B7PO"): self.StopBits, self.ByteSize, self.Parity = 2, 7, "O"
-        if (self.Domoticz_Setting_Port_Mode == "S2B8PN"): self.StopBits, self.ByteSize, self.Parity = 2, 8, "N"
-        if (self.Domoticz_Setting_Port_Mode == "S2B8PE"): self.StopBits, self.ByteSize, self.Parity = 2, 8, "E"
-        if (self.Domoticz_Setting_Port_Mode == "S2B8PO"): self.StopBits, self.ByteSize, self.Parity = 2, 8, "O"
+        # RTU - Serial port settings: "S<stopbits>B<bytesize>P<parity>", e.g. S1B8PN
+        self.StopBits, self.ByteSize, self.Parity = 1, 8, "N" # Default
+        port_mode = self.Domoticz_Setting_Port_Mode
+        if (len(port_mode) == 6 and port_mode[0] == "S" and port_mode[2] == "B" and port_mode[4] == "P"):
+          self.StopBits, self.ByteSize, self.Parity = int(port_mode[1]), int(port_mode[3]), port_mode[5]
 
         if (len(Devices) == 0): Domoticz.Device(Name="ModbusWRITE", Unit=1, TypeName="Switch", Image=0, Used=1).Create() # Used=1 to add a switch immediatly!
 
@@ -181,6 +246,46 @@ class BasePlugin:
     def onMessage(self, Connection, Data, Status, Extra):
         Domoticz.Log("onMessage called")
 
+    def UpdateWhenError(self):
+        if (self.Domoticz_Setting_Update_When_Error == "Yes" and 1 in Devices):
+          Devices[1].Update(1, "0") # Set value to 0 (error)
+
+    def ConnectFailureReason(self):
+        """connect() only returns False; find out why, so the Domoticz log says something useful."""
+        mode = self.Domoticz_Setting_Communication_Mode
+        if (mode == "rtu" or mode == "ascii"):
+          port = self.Domoticz_Setting_Serial_Port
+          if not os.path.exists(port): return "serial port " + port + " does not exist"
+          if not os.access(port, os.R_OK | os.W_OK): return "no permission to open " + port + " (is the domoticz user in the 'dialout' group?)"
+          return "could not open serial port " + port + " (in use by another program?)"
+        target = self.Domoticz_Setting_TCP_IP + ":" + self.Domoticz_Setting_TCP_PORT
+        try:
+          test = socket.create_connection((self.Domoticz_Setting_TCP_IP, int(self.Domoticz_Setting_TCP_PORT)), timeout=3)
+          test.close()
+          return "a plain TCP connection to " + target + " works, but the device refused/dropped the Modbus client (many gateways allow only ONE connection at a time)"
+        except OSError as e:
+          return "TCP connection to " + target + " failed: " + str(e)
+
+    def CreateClient(self):
+        mode = self.Domoticz_Setting_Communication_Mode
+
+        # pymodbus: RTU / ASCII (serial)
+        if (mode == "rtu" or mode == "ascii"):
+          Domoticz.Debug("MODBUS DEBUG - INTERFACE: Port="+self.Domoticz_Setting_Serial_Port+", BaudRate="+self.Domoticz_Setting_Baudrate+", StopBits="+str(self.StopBits)+", ByteSize="+str(self.ByteSize)+" Parity="+self.Parity)
+          serial_args = dict(port=self.Domoticz_Setting_Serial_Port, baudrate=int(self.Domoticz_Setting_Baudrate), bytesize=self.ByteSize, parity=self.Parity, stopbits=self.StopBits, timeout=2, retries=2)
+          try:
+            takes_framer = "framer" in inspect.signature(ModbusSerialClient.__init__).parameters
+          except Exception:
+            takes_framer = True
+          if takes_framer:
+            return ModbusSerialClient(framer=FRAMERS[mode], **serial_args)
+          return ModbusSerialClient(method=mode, **serial_args) # very old pymodbus 3.x: method="rtu"/"ascii"
+
+        # pymodbus: RTU over TCP / TCP/IP
+        Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
+        framer = FRAMERS["rtu"] if mode == "rtutcp" else FRAMERS["socket"]
+        return ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=framer, timeout=2, retries=2)
+
     def onCommand(self, Unit, Command, Level, Hue):
         Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
 
@@ -190,79 +295,54 @@ class BasePlugin:
         if (str(Command) == "On"): payload = self.Domoticz_Setting_Payload_ON
         if (str(Command) == "Off"): payload = self.Domoticz_Setting_Payload_OFF
 
-        ########################################
-        # SET HARDWARE - pymodbus: RTU / ASCII
-        ########################################
-        if (self.Domoticz_Setting_Communication_Mode == "rtu" or self.Domoticz_Setting_Communication_Mode == "ascii"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: Port="+self.Domoticz_Setting_Serial_Port+", BaudRate="+self.Domoticz_Setting_Baudrate+", StopBits="+str(self.StopBits)+", ByteSize="+str(self.ByteSize)+" Parity="+self.Parity)
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Payload="+payload)
-          try:
-            client = ModbusSerialClient(method=self.Domoticz_Setting_Communication_Mode, port=self.Domoticz_Setting_Serial_Port, stopbits=self.StopBits, bytesize=self.ByteSize, parity=self.Parity, baudrate=int(self.Domoticz_Setting_Baudrate), timeout=2, retries=2)
-          except:
-            Domoticz.Error("Error opening Serial interface on "+self.Domoticz_Setting_Serial_Port)
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+        mode = self.Domoticz_Setting_Communication_Mode
+        Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Payload="+str(payload))
 
         ########################################
-        # SET HARDWARE - pymodbus: RTU over TCP
+        # SET HARDWARE
         ########################################
-        if (self.Domoticz_Setting_Communication_Mode == "rtutcp"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function="+self.Domoticz_Setting_Modbus_Function+", Payload="+payload)
-          try:
-            client = ModbusTcpClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), framer=ModbusRtuFramer, auto_open=True, auto_close=True, timeout=2)
-          except:
-            Domoticz.Error("Error opening RTU over TCP interface on address: "+self.Domoticz_Setting_TCP_IPPORT)
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+        try:
+          client = self.CreateClient()
+        except Exception as e:
+          Domoticz.Error("Error creating the Modbus interface (" + mode + "): " + str(e))
+          self.UpdateWhenError()
+          return
 
         ########################################
-        # SET HARDWARE - pymodbusTCP: TCP/IP
+        # WRITE PAYLOAD
         ########################################
-        if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
-          Domoticz.Debug("MODBUS DEBUG - INTERFACE: IP="+self.Domoticz_Setting_TCP_IP+", Port="+self.Domoticz_Setting_TCP_PORT)
-          Domoticz.Debug("MODBUS DEBUG - SETTINGS: Method="+self.Domoticz_Setting_Communication_Mode+", Device ID="+self.Domoticz_Setting_Device_ID+", Register="+self.Domoticz_Setting_Register_Number+", Function"+self.Domoticz_Setting_Modbus_Function+", Payload="+payload)
-          try:
-            client = ModbusClient(host=self.Domoticz_Setting_TCP_IP, port=int(self.Domoticz_Setting_TCP_PORT), unit_id=int(self.Domoticz_Setting_Device_ID), auto_open=True, auto_close=True, timeout=2)
-          except:
-            Domoticz.Error("Error opening TCP/IP interface on address: "+self.Domoticz_Setting_TCP_IPPORT)
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+        try:
+          if not client.connect():
+            raise ConnectionError(self.ConnectFailureReason())
 
-        ########################################
-        # WRITE PAYLOAD - pymodbus: RTU / ASCII / RTU over TCP
-        ########################################
-        if (self.Domoticz_Setting_Communication_Mode == "rtu" or self.Domoticz_Setting_Communication_Mode == "ascii" or self.Domoticz_Setting_Communication_Mode == "rtutcp"):
+          address = int(self.Domoticz_Setting_Register_Number)
+          device_id = int(self.Domoticz_Setting_Device_ID)
+          function = self.Domoticz_Setting_Modbus_Function
+          value = parse_payload(payload, PAYLOAD_BASE.get(mode, 10))
+
+          # Function to execute
+          if (function == "5"): result = client.write_coil(address, bool(value), **unit_kwargs(client.write_coil, device_id))
+          elif (function == "6"): result = client.write_register(address, value, **unit_kwargs(client.write_register, device_id))
+          elif (function == "15"): result = client.write_coils(address, [bool(value)], **unit_kwargs(client.write_coils, device_id))      # TODO split up multiple bytes to proper array.
+          elif (function == "16"): result = client.write_registers(address, [value], **unit_kwargs(client.write_registers, device_id))  # TODO split up multiple bytes to proper array.
+          else: raise ValueError("unknown Modbus function: " + str(function))
+
+          if result.isError():
+            raise IOError(str(result))
+          Domoticz.Debug("MODBUS DEBUG - RESULT: " + str(result))
+        except Exception as e:
+          Domoticz.Error("Modbus error communicating! (" + mode + "), check your settings! (" + str(e) + ")")
+          self.UpdateWhenError()
+          return
+        finally:
           try:
-            # Function to execute
-            if (self.Domoticz_Setting_Modbus_Function == "5"): result = client.write_coil(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
-            if (self.Domoticz_Setting_Modbus_Function == "6"): result = client.write_register(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
-            if (self.Domoticz_Setting_Modbus_Function == "15"): result = client.write_coils(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
-            if (self.Domoticz_Setting_Modbus_Function == "16"): result = client.write_registers(int(self.Domoticz_Setting_Register_Number), int(payload, 16), unit=int(self.Domoticz_Setting_Device_ID))
             client.close()
+          except Exception:
+            pass
 
-            Domoticz.Debug("MODBUS DEBUG - RESULT: " + str(result))
-            if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON
-            if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF
-          except:
-            Domoticz.Error("Modbus error communicating! (RTU/ASCII/RTU over TCP), check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
-
-        ########################################
-        # SET PAYLOAD - pymodbusTCP: TCP/IP
-        ########################################
-        if (self.Domoticz_Setting_Communication_Mode == "tcpip"):
-          try:
-            # Function to execute
-            if (self.Domoticz_Setting_Modbus_Function == "5"): result = client.write_single_coil(int(self.Domoticz_Setting_Register_Number), int(payload))
-            if (self.Domoticz_Setting_Modbus_Function == "6"): result = client.write_single_register(int(self.Domoticz_Setting_Register_Number), int(payload))
-            if (self.Domoticz_Setting_Modbus_Function == "15"): result = client.write_multiple_coils(int(self.Domoticz_Setting_Register_Number), [payload])     # TODO split up multiple bytes to proper array.
-            if (self.Domoticz_Setting_Modbus_Function == "16"): result = client.write_multiple_registers(int(self.Domoticz_Setting_Register_Number), [payload]) # TODO split up multiple bytes to proper array.
-            client.close()
-
-            Domoticz.Debug("MODBUS DEBUG - RESULT: " + str(result))
-            if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON
-            if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF
-          except:
-            Domoticz.Error("Modbus error communicating! (TCP/IP), check your settings!")
-            Devices[1].Update(1, "0") # Set value to 0 (error)
+        if (1 in Devices):
+          if (str(Command) == "On"): Devices[1].Update(1, "1") # Update device to ON
+          if (str(Command) == "Off"): Devices[1].Update(0, "0") # Update device to OFF
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
@@ -274,8 +354,8 @@ class BasePlugin:
         # Domoticz.Log("onHeartbeat called")
         return
 
-    def UpdateDevice(Unit, nValue, sValue):
-        # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
+    def UpdateDevice(self, Unit, nValue, sValue):
+        # Make sure that the Domoticz device still exists (they can be deleted) before updating it
         if (Unit in Devices):
           if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
             Devices[Unit].Update(nValue, str(sValue))
@@ -317,7 +397,7 @@ def onHeartbeat():
     global _plugin
     _plugin.onHeartbeat()
 
-    # Generic helper functions
+# Generic helper functions
 def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
