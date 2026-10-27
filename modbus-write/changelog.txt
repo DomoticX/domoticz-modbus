@@ -1,4 +1,4 @@
-Modbus READ v2026.4
+Modbus WRITE v2026.4
 - Plugin picks the right pymodbus API when it loads.
 - pymodbus 3.8 and newer: it uses the FramerType enum, which only exists from 3.8.
 -Older pymodbus (such as 3.6.9): it uses the framer classes (ModbusRtuFramer, ModbusAsciiFramer, ModbusSocketFramer) that the old version of the plugin used. For the serial client it also falls back to the old method="rtu" argument on very old releases.
